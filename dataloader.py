@@ -2,7 +2,7 @@ from torch.utils.data import Dataset
 import os
 import numpy as np
 from PIL import Image
-from function import transform_box
+from faster_rcnn.function import transform_box
 
 def read_filetxt(file_txt):
     results = {'label': [], 'box': []}
