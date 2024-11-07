@@ -1,10 +1,8 @@
-import torch
-from torch import nn
 from torch.utils.data import Dataset
 import os
 import numpy as np
 from PIL import Image
-from typing import List
+from function import transform_box
 
 def read_filetxt(file_txt):
     results = {'label': [], 'box': []}
@@ -12,7 +10,9 @@ def read_filetxt(file_txt):
         for line in file.readlines():
             values = line.strip().split()
             if int(values[0]) >= 4:
-                values[0] = int(values[0]) - 4
+                values[0] = int(values[0]) - 3
+            else:
+                values[0] = int(values[0]) + 1
             
             results['label'].append(int(values[0]))
             results['box'].append([float(value) for value in values[1: 5]])
@@ -37,9 +37,22 @@ def get_file_path(folder):
 
 
 class TrafficVehicle(Dataset):
-    def __init__(self, folder: str, transforms=None):
+    def __init__(self, folder: str, transforms=None, 
+                 transform_box_type: str="center"):
+        """ 
+            transform_box sẽ chuyển tọa độ bounding box sang để phù hợp với các model, có hai kiểu để chuyển đổi 
+            là "center" hoặc "corner", mặc định là "center". Nếu transform_type="center" thì mặc định các model sử dụng bounding box 
+            theo tọa độ tâm và kích thước. Ngược lại, transform_type="corner" các model sẽ sử dụng bounding box theo tọa độ góc.
+
+            Ví dụ: trong bài toán object detection các tọa độ bounding box thường chia thành hai kiểu:
+                - (x1, y1, x2, y2): Thường được sử dụng trong Faster R-CNN, Mask R-CNN...
+                - (x_center, y_center, width, height): Thường được sử dụng trong YOLO, SSD, RetinaNet, CenterNet, DETR, EfficientDet...
+            
+            Lưu ý: Do trong quá trình gán nhãn theo định dạng YOLO (x_center, y_center, width, height) nên không cần transform_box nữa.
+        """
         self.data = get_file_path(folder)
         self.transforms = transforms
+        self.transform_box_type = transform_box_type
 
         if self.data['folder'] == 'train':
             self.image, self.txt = [], []
@@ -52,7 +65,7 @@ class TrafficVehicle(Dataset):
                     self.image.append(train_path)
         else:
             self.image = [image_path for image_path in self.data['file_test']]
-        self.class_name = {0: 'motocycle', 1: 'car', 2: 'coach', 3: 'container truck'}
+        self.class_name = {1: 'motocycle', 2: 'car', 3: 'coach', 4: 'container truck'}
     def load_image(self, index):
         img = Image.open(self.image[index])
         img = np.array(img)
@@ -62,8 +75,17 @@ class TrafficVehicle(Dataset):
     def __getitem__(self, index: int):
         img = self.load_image(index)
         target = read_filetxt(self.txt[index])
-        
 
+        # kiểm tra transform_box có phải là center hoặc corner không
+        if self.transform_box_type not in ['center', 'corner']:
+            raise ValueError("transform_box_type phải là 'center' hoặc 'corner'!")
+        
+        # transform_box bounding box 
+        if self.transform_box_type == "corner":
+            height, width = img.shape[:2]
+            target['box'] = [transform_box(box, height, width) for box in target['box']]
+
+        # Áp dụng transforms (data augmentation) cho image và box
         if self.transforms is not None:
             img = self.transforms(img, target['box'])
 
