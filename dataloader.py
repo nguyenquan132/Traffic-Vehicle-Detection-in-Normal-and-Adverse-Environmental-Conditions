@@ -45,8 +45,8 @@ class TrafficVehicle(Dataset):
             theo tọa độ tâm và kích thước. Ngược lại, transform_type="corner" các model sẽ sử dụng bounding box theo tọa độ góc.
 
             Ví dụ: trong bài toán object detection các tọa độ bounding box thường chia thành hai kiểu:
-                - (x1, y1, x2, y2): Thường được sử dụng trong Faster R-CNN, Mask R-CNN...
-                - (x_center, y_center, width, height): Thường được sử dụng trong YOLO, SSD, RetinaNet, CenterNet, DETR, EfficientDet...
+                - (x_min, y_min, x_max, y_max)
+                - (x_center, y_center, width, height)
             
             Lưu ý: Do trong quá trình gán nhãn theo định dạng YOLO (x_center, y_center, width, height) nên không cần transform_box nữa.
         """
