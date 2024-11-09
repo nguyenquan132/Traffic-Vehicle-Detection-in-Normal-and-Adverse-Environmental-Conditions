@@ -104,7 +104,7 @@ class TrafficVehicle(Dataset):
             target['box'] = transformed['bboxes']
             target['label'] = transformed['class_labels']
 
-            img = torch.tensor(img, dtype=torch.float32).permute(2, 0, 1)  # Convert HWC to CHW format for PyTorch
+            img = torch.tensor(img, dtype=torch.float32) #CHW format for PyTorch
             target['box'] = torch.tensor(target['box'], dtype=torch.float32)
             target['label'] = torch.tensor(target['label'], dtype=torch.int32)
         return img, target
