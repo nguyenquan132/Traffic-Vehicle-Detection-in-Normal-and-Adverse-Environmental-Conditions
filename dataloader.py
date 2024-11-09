@@ -2,6 +2,7 @@ from torch.utils.data import Dataset
 import os
 import numpy as np
 from PIL import Image
+import torch
 
 def transform_box(box, height, width):
     
@@ -102,9 +103,10 @@ class TrafficVehicle(Dataset):
             target['box'] = transformed['bboxes']
             target['label'] = transformed['class_labels']
 
-            return img, target
-        else:
-            return img, target
+        img = torch.tensor(img, dtype=torch.float32).permute(2, 0, 1)  # Convert HWC to CHW format for PyTorch
+        target['box'] = torch.tensor(target['box'], dtype=torch.float32)
+        target['label'] = torch.tensor(target['label'], dtype=torch.int32)
+        return img, target
 
 
 
