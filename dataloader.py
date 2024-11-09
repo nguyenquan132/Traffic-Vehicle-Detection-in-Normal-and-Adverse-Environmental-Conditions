@@ -96,7 +96,7 @@ class TrafficVehicle(Dataset):
             height, width = img.shape[:2]
             target['box'] = [transform_box(box, height, width) for box in target['box']]
 
-        # Áp dụng transforms (data augmentation) cho image và box
+        # Áp dụng transforms cho image và box
         if self.transforms is not None:
             H, W = img.shape[:2]
             boxes = tv_tensors.BoundingBoxes(target['box'], format="XYXY", canvas_size=(H, W))
@@ -104,6 +104,7 @@ class TrafficVehicle(Dataset):
             target['box'] = boxes
 
             return img, target
+        
         else:
             return img, target
 
