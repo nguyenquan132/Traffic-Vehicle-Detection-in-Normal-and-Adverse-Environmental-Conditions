@@ -2,6 +2,7 @@ from torch.utils.data import Dataset
 import os
 import numpy as np
 from PIL import Image
+from torchvision import tv_tensors
 
 def transform_box(box, height, width):
     
@@ -31,13 +32,13 @@ def read_filetxt(file_txt):
 
 def get_file_path(folder):
     data = []
-    sub_folders = sorted(os.listdir(folder))
+    sub_folders = list(sorted(os.listdir(folder)))
     sub_folder_paths = [os.path.join(folder, sub_folder) for sub_folder in sub_folders]
     # Kiểm tra tập train hay test
     if os.listdir(sub_folder_paths[0]) is not None:
         # Duyêt qua tập daytime và nighttime
         for sub_folder_path in sub_folder_paths:
-            data_paths = sorted(os.listdir(sub_folder_path))
+            data_paths = list(sorted(os.listdir(sub_folder_path)))
             data_path_file = [os.path.join(sub_folder_path, data_path) for data_path in data_paths]
             data.extend(data_path_file)
 
@@ -97,10 +98,10 @@ class TrafficVehicle(Dataset):
 
         # Áp dụng transforms (data augmentation) cho image và box
         if self.transforms is not None:
-            transformed = self.transforms(image=img, bboxes=target['box'], class_labels=target['label'])
-            img = transformed['image']
-            target['box'] = transformed['bboxes']
-            target['label'] = transformed['class_labels']
+            H, W = img.shape[:2]
+            boxes = tv_tensors.BoundingBoxes(target['box'], format="XYXY", canvas_size=(H, W))
+            img, boxes = self.transforms(img, boxes)
+            target['box'] = boxes
 
             return img, target
         else:
