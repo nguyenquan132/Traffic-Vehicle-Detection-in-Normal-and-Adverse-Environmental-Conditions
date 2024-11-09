@@ -2,7 +2,17 @@ from torch.utils.data import Dataset
 import os
 import numpy as np
 from PIL import Image
-from faster_rcnn.function import transform_box
+
+def transform_box(box, height, width):
+    
+    x_center, y_center, box_width, box_height = box
+    x_min = (x_center - box_width/2) *   width
+    x_max = (x_center + box_width/2) * width
+    y_min = (y_center - box_height/2) *   height
+    y_max = (y_center + box_height/2) * height
+
+    return [x_min, y_min, x_max, y_max]
+    
 
 def read_filetxt(file_txt):
     results = {'label': [], 'box': []}
@@ -87,7 +97,10 @@ class TrafficVehicle(Dataset):
 
         # Áp dụng transforms (data augmentation) cho image và box
         if self.transforms is not None:
-            img = self.transforms(img, target['box'])
+            transformed = self.transforms(image=img, bboxes=target['box'], class_labels=target['label'])
+            img = transformed['image']
+            target['box'] = transformed['bboxes']
+            target['label'] = transformed['class_labels']
 
             return img, target
         else:
