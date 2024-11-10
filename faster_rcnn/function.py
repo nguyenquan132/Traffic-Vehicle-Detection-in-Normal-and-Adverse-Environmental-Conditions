@@ -1,6 +1,9 @@
 import numpy as np
 from sklearn.metrics import precision_score, recall_score
 
+def collate_fn(batch):
+    return tuple(zip(*batch))
+
 def iou(boxA, boxB):
     # Toạ độ hình chữ nhật tương ứng phần giao nhau
     xA = max(boxA[0], boxB[0])
