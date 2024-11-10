@@ -17,7 +17,7 @@ def transform_box(box, height, width):
     
 
 def read_filetxt(file_txt):
-    results = {'label': [], 'box': []}
+    results = {'labels': [], 'boxes': []}
     with open(file_txt, "r", newline='') as file:
         for line in file.readlines():
             values = line.strip().split()
@@ -26,8 +26,8 @@ def read_filetxt(file_txt):
             else:
                 values[0] = int(values[0]) + 1
             
-            results['label'].append(int(values[0]))
-            results['box'].append([float(value) for value in values[1: 5]])
+            results['labels'].append(int(values[0]))
+            results['boxes'].append([float(value) for value in values[1: 5]])
 
     return results
 
@@ -95,18 +95,18 @@ class TrafficVehicle(Dataset):
         # transform_box bounding box 
         if self.transform_box_type == "corner":
             height, width = img.shape[:2]
-            target['box'] = [transform_box(box, height, width) for box in target['box']]
+            target['boxes'] = [transform_box(box, height, width) for box in target['boxes']]
 
         # Áp dụng transforms cho image và box
         if self.transforms is not None:
-            transformed = self.transforms(image=img, bboxes=target['box'], class_labels=target['label'])
+            transformed = self.transforms(image=img, bboxes=target['boxes'], class_labels=target['labels'])
             img = transformed['image']
-            target['box'] = transformed['bboxes']
-            target['label'] = transformed['class_labels']
+            target['boxes'] = transformed['bboxes']
+            target['labels'] = transformed['class_labels']
 
             img = torch.tensor(img, dtype=torch.float32).permute(2,0,1) #CHW format for PyTorch
-            target['box'] = torch.tensor(target['box'], dtype=torch.float32)
-            target['label'] = torch.tensor(target['label'], dtype=torch.int32)
+            target['boxes'] = torch.tensor(target['boxes'], dtype=torch.float32)
+            target['labels'] = torch.tensor(target['labels'], dtype=torch.int32)
         return img, target
 
 
