@@ -1,6 +1,7 @@
 import torch
 from torch.utils.data import DataLoader
 import torchvision
+from tqdm.auto import tqdm
 
 def train_step(train_dataloader: DataLoader,
                model: torchvision.models,
@@ -11,11 +12,12 @@ def train_step(train_dataloader: DataLoader,
     loss = 0
     loss_classifier, loss_box_reg, loss_objectness, loss_rpn_box_reg = 0, 0, 0, 0
 
-    for batch, (images, targets) in enumerate(train_dataloader):
+    for batch, (images, targets) in tqdm(enumerate(train_dataloader), total=len(train_dataloader)):
         image = list(image.to(device) for image in images)
         target = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
         loss_dict = model(image, target)
+        print(loss_dict)
 
         losses = sum(loss for loss in loss_dict.values())
         loss += losses
