@@ -1,8 +1,9 @@
 from torch.utils.data import DataLoader
 import torchvision
 import torch
-from function import iou, calculate_ap, calculate_precision_recall
+from .function import calculate_ap, calculate_precision_recall
 import torchvision.ops as ops
+from tqdm.auto import tqdm
 
 def evaluate(val_dataloader: DataLoader,
               model: torchvision.models,
@@ -13,9 +14,10 @@ def evaluate(val_dataloader: DataLoader,
     model.eval()
     precisions_per_class = {i: [] for i in range(1, num_class + 1)}
     recalls_per_class = {i: [] for i in range(1, num_class + 1)}
+    confidence_per_class = {i: [] for i in range(1, num_class + 1)}
 
     with torch.inference_mode():
-        for images, targets in val_dataloader:
+        for images, targets in tqdm(val_dataloader, total=len(val_dataloader)):
             image = list(image.to(device) for image in images)
             target = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
@@ -47,8 +49,10 @@ def evaluate(val_dataloader: DataLoader,
                                                                    pred_boxes=pred_boxes_class,
                                                                    iou_threshold=iou_threshold)
                     
+                    # Lưu precision, recall và confidence scores cho từng class
                     precisions_per_class[class_id].append(precision)
                     recalls_per_class[class_id].append(recall)
+                    confidence_per_class[class_id].extend(pred_scores_class)
 
 
         AP_per_class = {}
@@ -61,6 +65,6 @@ def evaluate(val_dataloader: DataLoader,
 
         mAP = sum(AP_per_class.values) / num_class
         
-        return mAP, precisions_per_class, recalls_per_class
+        return mAP, precisions_per_class, recalls_per_class, confidence_per_class
             
 
