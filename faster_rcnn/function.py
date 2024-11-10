@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.metrics import precision_score, recall_score
+import matplotlib.pyplot as plt
 
 def collate_fn(batch):
     return tuple(zip(*batch))
@@ -53,5 +54,26 @@ def calculate_ap(precisions, recalls):
 
     return AP
 
+def loss_curve(results, title):
+    """
+    results={
+        "epoch_value" = [],
+        "loss" = []
+        }
+    """
+    epoch = results['epoch_value']
+    loss = results['loss']
+    plt.figure(figsize=(15, 7))
+    plt.plot(epoch, loss, marker='o', color='#87CEEB')
+    plt.title(f"train/{title}")
+    plt.xlabel("epoch")
+    plt.ylabel("loss")
+    plt.show()
+
+def precision_recall_curve(metric):
+    """
+    Precision, recall của mỗi class
+    """
+    plt.figure(figsize=(15, 7))
 
 
