@@ -57,13 +57,10 @@ def calculate_precision_recall(true_boxes, pred_boxes, iou_threshold=0.5):
         y_true.append(1)
         y_pred.append(0)
 
-    print(y_true)
-    print(y_pred)
-        
-    precision = precision_score(y_true, y_pred)
-    recall = recall_score(y_true, y_pred)
-    
-    return precision, recall
+    if len(y_true) == 0 or len(y_pred) == 0:
+        return 0.0, 0.0
+    else:
+        return precision_score(y_true, y_pred), recall_score(y_true, y_pred)
 
 def calculate_ap(precisions, recalls):
     precisions.append(1)
