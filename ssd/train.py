@@ -1,11 +1,9 @@
-import sys
-sys.path.append(r'E:\Traffic-Vehicle-Detection-in-Normal-and-Adverse-Environmental-Conditions')
 from dataloader import TrafficVehicle
 from torch.utils.data import DataLoader
 import albumentations as A
 from tqdm.auto import tqdm
 import torch
-from model import create_model
+from .model import create_model
 from torch.optim.lr_scheduler import StepLR
 
 DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
