@@ -1,8 +1,8 @@
 import argparse
-from .function import collate_fn
+from function import collate_fn
 from torch.utils.data import DataLoader, SubsetRandomSampler
 import albumentations as A 
-from .evaluate import evaluate
+from evaluate import evaluate
 from .train import train_step
 from dataloader import TrafficVehicle
 import torch
@@ -20,30 +20,17 @@ arg.add_argument("--weight_decay", type=float, default=0, help="Hệ số weight
 parse = arg.parse_args()
 
 transform = A.Compose([
-    A.Resize(300, 300)
+    A.Resize(300, 300),
+    A.normalize(mean=0.0, std=1.0)
 ], bbox_params=A.BboxParams(format='pascal_voc', label_fields=['class_labels']))
 
 if __name__ == '__main__':
     train = TrafficVehicle(folder="train", transforms=transform, transform_box_type="corner")
-    test = TrafficVehicle(folder="public test", transforms=transform, transform_box_type="corner")
-
-    # Chia tập train và val
-    val_size = int(0.2 * len(train))
-    train_size = len(train) - val_size
-
-    train_indices = list(range(train_size))
-    val_indices = list(range(val_size))
-
-    np.random.shuffle(train_indices)
-    np.random.shuffle(val_indices)
-
-    train_sample = SubsetRandomSampler(train_indices)
-    val_sample = SubsetRandomSampler(val_indices)
-
+    val = TrafficVehicle(folder="val", transforms=transform, transform_box_type="corner")
+    
     # Load DataLoader
-    train_dataloader = DataLoader(dataset=train, batch_size=32, sampler=train_sample, num_workers=1, collate_fn=collate_fn)
-    val_dataloader = DataLoader(dataset=train, batch_size=32, sampler=val_sample, num_workers=1, collate_fn=collate_fn)
-    test_dataloader = DataLoader(dataset=test, batch_size=32, shuffle=False, num_workers=1)
+    train_dataloader = DataLoader(dataset=train, batch_size=32, shuffle=True, num_workers=1, collate_fn=collate_fn)
+    val_dataloader = DataLoader(dataset=train, batch_size=32, shuffle=True, num_workers=1, collate_fn=collate_fn)
 
     # Khởi tạo model
     weights = models.detection.FasterRCNN_ResNet50_FPN_Weights.DEFAULT
@@ -85,7 +72,6 @@ if __name__ == '__main__':
                                                                                     num_class=num_class-1,
                                                                                     iou_threshold=0.5,
                                                                                     device=device)
-        print('yes') 
     
  
 
