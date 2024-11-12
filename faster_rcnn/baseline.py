@@ -1,6 +1,6 @@
 import argparse
 from function import collate_fn
-from torch.utils.data import DataLoader, SubsetRandomSampler
+from torch.utils.data import DataLoader
 import albumentations as A 
 from evaluate import evaluate
 from .train import train_step
@@ -61,6 +61,11 @@ if __name__ == '__main__':
         "loss_objectness": [],
         "loss_rpn_box_reg": []
     }
+    matrix = {
+        "precisions per class": [],
+        "recalls per class": [],
+        "confidence per class": []
+    }
     for epoch in range(parse.epoch):
         print(f"Epoch {epoch}/{parse.epoch}")
         loss, loss_classifier, loss_box_reg, loss_objectness, loss_rpn_box_reg = train_step(train_dataloader=train_dataloader, 
@@ -68,10 +73,21 @@ if __name__ == '__main__':
                                                                                             optimizer=optimizer,
                                                                                             device=device)
         mAP, precisions_per_class, recalls_per_class, confidence_per_class = evaluate(val_dataloader=val_dataloader,
-                                                                                    model=model,
-                                                                                    num_class=num_class-1,
-                                                                                    iou_threshold=0.5,
-                                                                                    device=device)
+                                                                                      model=model,
+                                                                                      num_class=num_class-1,
+                                                                                      iou_threshold=0.5,
+                                                                                      device=device)
+        results["epoch_value"].append(epoch)
+        results["loss"].append(loss.item if isinstance(loss, torch.Tensor) else loss)
+        results["loss_classifier"].append(loss_classifier.item if isinstance(loss_classifier, torch.Tensor) else loss_classifier)
+        results["loss_box_reg"].append(loss_box_reg.item if isinstance(loss_box_reg, torch.Tensor) else loss_box_reg)
+        results["loss_objectness"].append(loss_objectness.item if isinstance(loss_objectness, torch.Tensor) else loss_objectness)
+        results["loss_rpn_box_reg"].append(loss_rpn_box_reg.item if isinstance(loss_rpn_box_reg, torch.Tensor) else loss_rpn_box_reg)
+
+        matrix["confidence per class"].append(confidence_per_class)
+        matrix["precisions per class"].append(precisions_per_class)
+        matrix["recalls per class"].append(recalls_per_class)
+
     
  
 
