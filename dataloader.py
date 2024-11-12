@@ -104,9 +104,8 @@ class TrafficVehicle(Dataset):
             target['boxes'] = transformed['bboxes']
             target['labels'] = transformed['class_labels']
 
-            img = torch.tensor(img, dtype=torch.float32).permute(2,0,1) #CHW format for PyTorch
-            target['boxes'] = torch.tensor(target['boxes'], dtype=torch.float32)
-            target['labels'] = torch.tensor(target['labels'], dtype=torch.int64)
+        target['boxes'] = torch.tensor(target['boxes'], dtype=torch.float32)
+        target['labels'] = torch.tensor(target['labels'], dtype=torch.int64)
         return img, target
 
 
