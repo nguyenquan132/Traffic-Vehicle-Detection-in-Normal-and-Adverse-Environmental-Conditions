@@ -82,17 +82,45 @@ def loss_curve(results, title):
     """
     epoch = results['epoch_value']
     loss = results['loss']
-    plt.figure(figsize=(15, 7))
+    plt.figure(figsize=(10, 8))
     plt.plot(epoch, loss, marker='o', color='#87CEEB')
     plt.title(f"train/{title}")
     plt.xlabel("epoch")
     plt.ylabel("loss")
     plt.show()
 
-def precision_recall_curve(metric):
+def precision_recall_curve(matrix, num_class, class_name):
     """
     Precision, recall của mỗi class
+    matrix = {
+        precisions per class: [],
+        recalls per class: [],
+        confidence per class: []
+    }
     """
-    plt.figure(figsize=(15, 7))
+    plt.figure(figsize=(10, 8))
+    list_color = ['orange', 'purple', 'red', 'green']
+    for class_id in range(1, num_class + 1):
+        plt.plot(matrix['precisions per class'][class_id], matrix['recalls per class'][class_id], 
+                 label=f'{class_name[class_id]}', color=list_color[class_id])
+        
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title('Precision-Recall Curve')
+    plt.legend(loc='best')
+    plt.show()
+
+def confidence_matrix(matrix, confidence, num_class, class_name, matrix_name):
+    plt.figure(figsize=(10, 8))
+    list_color = ['orange', 'purple', 'red', 'green']
+    for class_id in range(1, num_class + 1):
+        plt.plot(matrix[class_id], confidence[class_id], 
+                 label=f'{class_name[class_id]}', color=list_color[class_id])
+        
+    plt.xlabel('Confidence')
+    plt.ylabel(f'{matrix_name}')
+    plt.title(f'{matrix_name}-Confidence Curve')
+    plt.legend(loc='best')
+    plt.show()
 
 
