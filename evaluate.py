@@ -65,6 +65,6 @@ def evaluate(val_dataloader: DataLoader,
 
         mAP = sum(AP_per_class.values) / num_class
         
-        return mAP, precisions_per_class, recalls_per_class, confidence_per_class
+        return mAP, AP_per_class, precisions_per_class, recalls_per_class, confidence_per_class
             
 
