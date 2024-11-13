@@ -63,7 +63,7 @@ def evaluate(val_dataloader: DataLoader,
             # Tính AP cho class này
             AP_per_class[class_id] = calculate_ap(precisions=precisions, recalls=recalls)
 
-        mAP = sum(AP_per_class.values) / num_class
+        mAP = sum([AP_per_class[class_id] for class_id in range(1, num_class + 1)]) / num_class
         
         return mAP, AP_per_class, precisions_per_class, recalls_per_class, confidence_per_class
             
