@@ -49,10 +49,13 @@ def evaluate(val_dataloader: DataLoader,
                                                                    pred_boxes=pred_boxes_class,
                                                                    iou_threshold=iou_threshold)
                     
+                    print(len(precision))
+                    print(len(precisions_per_class))
+                    
                     # Lưu precision, recall và confidence scores cho từng class
                     precisions_per_class[class_id].append(precision)
                     recalls_per_class[class_id].append(recall)
-                    confidence_per_class[class_id].extend(pred_scores_class)
+                    confidence_per_class[class_id].append(pred_scores_class)
 
 
         AP_per_class = {}
