@@ -4,14 +4,16 @@ import numpy as np
 from PIL import Image
 from torchvision import tv_tensors
 import torch 
+epsilon = 1e-6
 
 def transform_box(box, height, width):
     
     x_center, y_center, box_width, box_height = box
-    x_min = (x_center - box_width/2) *   width
-    x_max = (x_center + box_width/2) * width
-    y_min = (y_center - box_height/2) *   height
-    y_max = (y_center + box_height/2) * height
+    # Giới hạn biên cho các bounding box 
+    x_min = max((x_center - box_width / 2) * width, 0 + epsilon)
+    x_max = min((x_center + box_width / 2) * width, width - epsilon)
+    y_min = max((y_center - box_height / 2) * height, 0 + epsilon)
+    y_max = min((y_center + box_height / 2) * height, height - epsilon)
 
     return [x_min, y_min, x_max, y_max]
     
