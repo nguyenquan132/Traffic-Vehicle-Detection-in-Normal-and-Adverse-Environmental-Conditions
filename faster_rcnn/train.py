@@ -17,7 +17,8 @@ def train_step(train_dataloader: DataLoader,
         target = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
         loss_dict = model(image, target)
-        print(loss_dict)
+        if batch == 1:
+            print(f"batch 1: \n{loss_dict}")
 
         losses = sum(loss for loss in loss_dict.values())
         loss += losses
