@@ -1,6 +1,7 @@
 import numpy as np
-from sklearn.metrics import precision_score, recall_score
 import matplotlib.pyplot as plt
+import torchvision.ops as ops
+import torch
 
 def collate_fn(batch):
     return tuple(zip(*batch))
@@ -12,79 +13,141 @@ def iou(boxA, boxB):
     xB = min(boxA[2], boxB[2])
     yB = min(boxA[3], boxB[3])
 
-    # Đảm bảo không có giá trị âm cho diện tích phần giao
+    # Tính diện tích phần giao
     interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
-
-    # Diện tích của các bounding boxes
+        
+    # Tính diện tích hai boxes
     boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
     boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
-
+        
     # Tính IoU
     iou = interArea / float(boxAArea + boxBArea - interArea)
-
     return iou
 
-def calculate_precision_recall(true_boxes, pred_boxes, iou_threshold=0.5):
-    y_true = []
-    y_pred = []
-    
-    matched_true_boxes = set()  # Đánh dấu các true_boxes đã được match
-    
-    for pred_box in pred_boxes:
-        best_iou = 0
-        best_true_idx = -1
+def calculate_precision_recall_ap(true_boxes, true_labels, pred_boxes, pred_scores, pred_labels, iou_threshold=0.5):
+    """
+        Tính precision, recall và average precision cho một class
         
-        # Tìm true_box có IoU cao nhất với pred_box hiện tại
-        for i, true_box in enumerate(true_boxes):
-            current_iou = iou(pred_box, true_box)
-            if current_iou > best_iou:
-                best_iou = current_iou
-                best_true_idx = i
+        Args:
+            true_boxes: numpy array của ground truth boxes
+            true_labels: numpy array của ground truth labels  
+            pred_boxes: numpy array của predicted boxes
+            pred_scores: numpy array của confidence scores
+            pred_labels: numpy array của predicted labels """
+    # Sắp xếp predictions theo confidence score giảm dần
+    sort_idx = np.argsort(-pred_scores)
+    pred_boxes = pred_boxes[sort_idx]
+    pred_scores = pred_scores[sort_idx]
+    pred_labels = pred_labels[sort_idx]
+
+    num_predictions = len(pred_boxes)
+    num_gt = len(true_boxes)
         
-        # Nếu match và true_box này chưa được match
-        if best_iou >= iou_threshold and best_true_idx not in matched_true_boxes:
-            y_true.append(1)  # True Positive
-            y_pred.append(1)
-            matched_true_boxes.add(best_true_idx)
+    # Arrays để lưu true positives và false positives
+    tp = np.zeros(num_predictions)
+    fp = np.zeros(num_predictions)
+        
+    # Đánh dấu GT boxes đã được match
+    gt_matched = np.zeros(num_gt)
+        
+    # Duyệt qua từng prediction
+    for pred_idx, (pred_box, pred_label) in enumerate(zip(pred_boxes, pred_labels)):
+        # Lọc GT boxes cùng class
+        gt_mask = (true_labels == pred_label)
+        gt_boxes_class = true_boxes[gt_mask]
+            
+        if len(gt_boxes_class) == 0:
+            fp[pred_idx] = 1
+            continue
+            
+        # Tính IoU với tất cả GT boxes cùng class
+        ious = np.array([iou(pred_box, gt_box) for gt_box in gt_boxes_class])
+        max_iou = np.max(ious)
+        max_idx = np.argmax(ious)
+            
+        # Kiểm tra match
+        if max_iou >= iou_threshold and not gt_matched[max_idx]:
+            tp[pred_idx] = 1
+            gt_matched[max_idx] = 1
         else:
-            y_true.append(0)  # False Positive
-            y_pred.append(1)
-    
-    # Thêm False Negatives cho các true_boxes chưa được match
-    unmatched_true_boxes = len(true_boxes) - len(matched_true_boxes)
-    for _ in range(unmatched_true_boxes):
-        y_true.append(1)  # False Negative
-        y_pred.append(0)
-    
-    # Tính precision và recall
-    precision = precision_score(y_true, y_pred, zero_division=1)
-    recall = recall_score(y_true, y_pred, zero_division=1)
-    
-    return precision, recall
+            fp[pred_idx] = 1
+        
+        # Tính cumulative precision và recall
+        cum_tp = np.cumsum(tp)
+        cum_fp = np.cumsum(fp)
+        
+        recalls = cum_tp / num_gt if num_gt > 0 else np.zeros_like(cum_tp)
+        precisions = cum_tp / (cum_tp + cum_fp)
+        
+        # Tính AP using 11-point interpolation
+        ap = 0
+        for i in range(num_predictions):
+            if i == 0:
+                ap += precisions[i] * recalls[i]
+            else:
+                ap += precisions[i] * (recalls[i] - recalls[i - 1])
+            
+        return precisions.tolist(), recalls.tolist(), ap
 
-def calculate_ap(precisions, recalls):
-    # Thêm giá trị boundary để tránh lỗi khi tính tích phân
-    precisions = np.concatenate(([0], precisions, [0]))
-    recalls = np.concatenate(([0], recalls, [1]))
+def evaluate_predictions(predictions, targets, num_class, iou_threshold):
+        """
+        Đánh giá predictions cho một batch
+        
+        Args:
+            predictions: list của dictionaries chứa predictions cho mỗi ảnh
+            targets: list của dictionaries chứa ground truth cho mỗi ảnh
+            
+        Returns:
+            dict: AP cho mỗi class trong batch
+        """
+        ap_per_class = {i: [] for i in range(1, num_class + 1)}
+        precision_per_class = {i: [] for i in range(1, num_class + 1)}
+        recall_per_class = {i: [] for i in range(1, num_class + 1)}
+        confidence_per_class = {i: [] for i in range(1, num_class + 1)}
+        
+        for target, pred in zip(targets, predictions):
+            true_boxes = target['boxes'].cpu().numpy()
+            true_labels = target['labels'].cpu().numpy()
+            
+            pred_boxes = pred['boxes'].cpu().numpy()
+            pred_scores = pred['scores'].cpu().numpy()
+            pred_labels = pred['labels'].cpu().numpy()
+            
+            # Áp dụng NMS
+            keep = ops.nms(
+                torch.from_numpy(pred_boxes),
+                torch.from_numpy(pred_scores),
+                iou_threshold=iou_threshold
+            )
+            pred_boxes = pred_boxes[keep]
+            pred_scores = pred_scores[keep]
+            pred_labels = pred_labels[keep]
+            
+            # Tính AP cho từng class
+            for class_id in range(1, num_class + 1):
+                true_mask = (true_labels == class_id)
+                pred_mask = (pred_labels == class_id)
+                
+                if not np.any(true_mask) and not np.any(pred_mask):
+                    continue
+                    
+                precisions, recalls, ap = calculate_precision_recall_ap(
+                    true_boxes[true_mask],
+                    true_labels[true_mask],
+                    pred_boxes[pred_mask],
+                    pred_scores[pred_mask],
+                    pred_labels[pred_mask],
+                    iou_threshold=iou_threshold
+                )
+                
+                ap_per_class[class_id].append(ap)
+                precision_per_class[class_id].append(precisions)
+                recall_per_class[class_id].append(recalls)
 
-    # Sắp xếp theo thứ tự recall giảm dần
-    for i in range(len(precisions) - 1, 0, -1):
-        precisions[i - 1] = max(precisions[i - 1], precisions[i])
-
-    # Tính AP bằng cách lấy diện tích dưới đường cong precision-recall
-    indices = np.where(recalls[1:] != recalls[:-1])[0]
-    AP = np.sum((recalls[indices + 1] - recalls[indices]) * precisions[indices + 1])
-
-    return AP
-
-def calculate_ap_per_class(precisions, recalls, confidences):
-    confidences = np.array(confidences)
-    sorted_indices = np.argsort(-confidences)  # Sắp xếp theo confidence giảm dần
-    precisions = np.array(precisions)[sorted_indices]
-    recalls = np.array(recalls)[sorted_indices]
-    
-    # Tính AP dựa trên đường cong Precision-Recall
-    return calculate_ap(precisions, recalls)
+                # Lưu lại confidence scores tương ứng với predictions của class
+                confidence_per_class[class_id].extend(pred_scores[pred_mask])
+                
+        return ap_per_class, precision_per_class, recall_per_class, confidence_per_class
 
 def loss_curve(results, title):
     """
@@ -114,10 +177,8 @@ def precision_recall_curve(matrix, num_class, class_name):
     plt.figure(figsize=(10, 8))
     list_color = ['orange', 'purple', 'red', 'green']
     for class_id in range(1, num_class + 1):
-        confidence = np.array(matrix['confidence per class'][class_id])
-        sorted_indices = np.argsort(-confidence)
-        precisions = np.array(matrix['precisions per class'][class_id])[sorted_indices]
-        recalls = np.array(matrix['recalls per class'][class_id])[sorted_indices]
+        precisions = np.array(matrix['precisions per class'][class_id])
+        recalls = np.array(matrix['recalls per class'][class_id])
         plt.plot(precisions, recalls, label=f'{class_name[class_id]}', color=list_color[class_id])
         
     plt.xlabel('Recall')
