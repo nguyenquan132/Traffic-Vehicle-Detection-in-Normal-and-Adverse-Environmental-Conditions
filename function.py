@@ -6,20 +6,20 @@ def collate_fn(batch):
     return tuple(zip(*batch))
 
 def iou(boxA, boxB):
-    # Toạ độ hình chữ nhật tương ứng phần giao nhau
+    # Tọa độ hình chữ nhật tương ứng phần giao nhau
     xA = max(boxA[0], boxB[0])
     yA = max(boxA[1], boxB[1])
     xB = min(boxA[2], boxB[2])
     yB = min(boxA[3], boxB[3])
 
-    # Tính diện tích phần giao nhau
-    interArea = (xB - xA + 1) * (yB - yA + 1)
+    # Đảm bảo không có giá trị âm cho diện tích phần giao
+    interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
 
-    # Diện tích của predicted và ground-truth bounding box
+    # Diện tích của các bounding boxes
     boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
     boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
 
-    # Diện tích phần hợp = tổng diện tích trừ diện tích phần giao
+    # Tính IoU
     iou = interArea / float(boxAArea + boxBArea - interArea)
 
     return iou
@@ -28,8 +28,7 @@ def calculate_precision_recall(true_boxes, pred_boxes, iou_threshold=0.5):
     y_true = []
     y_pred = []
     
-    # Đánh dấu true_boxes đã được match
-    matched_true_boxes = set()
+    matched_true_boxes = set()  # Đánh dấu các true_boxes đã được match
     
     for pred_box in pred_boxes:
         best_iou = 0
@@ -42,7 +41,7 @@ def calculate_precision_recall(true_boxes, pred_boxes, iou_threshold=0.5):
                 best_iou = current_iou
                 best_true_idx = i
         
-        # Nếu tìm được match và true_box này chưa được match trước đó
+        # Nếu match và true_box này chưa được match
         if best_iou >= iou_threshold and best_true_idx not in matched_true_boxes:
             y_true.append(1)  # True Positive
             y_pred.append(1)
@@ -54,31 +53,40 @@ def calculate_precision_recall(true_boxes, pred_boxes, iou_threshold=0.5):
     # Thêm False Negatives cho các true_boxes chưa được match
     unmatched_true_boxes = len(true_boxes) - len(matched_true_boxes)
     for _ in range(unmatched_true_boxes):
-        y_true.append(1)
+        y_true.append(1)  # False Negative
         y_pred.append(0)
-
-    if len(y_pred) == 0:  # Không có predicted boxes
-        precision = 1.0  # Precision được coi là 1 vì không có False Positives
-    else:
-        precision = precision_score(y_true, y_pred, zero_division=1)
-
-    if len(y_true) == 0:  # Không có true boxes
-        recall = 0.0  # Recall là 0 vì không có True Positives
-    else:
-        recall = recall_score(y_true, y_pred, zero_division=1)
+    
+    # Tính precision và recall
+    precision = precision_score(y_true, y_pred, zero_division=1)
+    recall = recall_score(y_true, y_pred, zero_division=1)
     
     return precision, recall
 
 def calculate_ap(precisions, recalls):
-    precisions.append(1)
-    recalls.append(0)
+    # Thêm giá trị boundary để tránh lỗi khi tính tích phân
+    precisions = np.concatenate(([0], precisions, [0]))
+    recalls = np.concatenate(([0], recalls, [1]))
 
-    precisions = np.array(precisions)
-    recalls = np.array(recalls)
+    # Sắp xếp theo thứ tự recall giảm dần
+    for i in range(len(precisions) - 1, 0, -1):
+        precisions[i - 1] = max(precisions[i - 1], precisions[i])
 
-    AP = np.sum((recalls[:-1] - recalls[1:]) * precisions[:-1])
+    # Tính AP bằng cách lấy diện tích dưới đường cong precision-recall
+    indices = np.where(recalls[1:] != recalls[:-1])[0]
+    AP = np.sum((recalls[indices + 1] - recalls[indices]) * precisions[indices + 1])
 
     return AP
+
+def calculate_ap_per_class(precisions, recalls, confidences):
+    confidences = np.array(confidences)
+    sorted_indices = np.argsort(-confidences)  # Sắp xếp theo confidence giảm dần
+    precisions = np.array(precisions)[sorted_indices]
+    recalls = np.array(recalls)[sorted_indices]
+
+    precisions, recalls, _ = precision_recall_curve(recalls, precisions)
+    
+    # Tính AP dựa trên đường cong Precision-Recall
+    return calculate_ap(precisions, recalls)
 
 def loss_curve(results, title):
     """
