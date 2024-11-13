@@ -1,7 +1,7 @@
 from torch.utils.data import DataLoader
 import torchvision
 import torch
-from function import calculate_ap, calculate_precision_recall
+from function import calculate_ap_per_class, calculate_precision_recall
 import torchvision.ops as ops
 from tqdm.auto import tqdm
 
@@ -59,9 +59,9 @@ def evaluate(val_dataloader: DataLoader,
         for class_id in range(1, num_class + 1):
             precisions = precisions_per_class[class_id]
             recalls = recalls_per_class[class_id]
+            confidences = confidence_per_class[class_id]
 
-            # Tính AP cho class này
-            AP_per_class[class_id] = calculate_ap(precisions=precisions, recalls=recalls)
+            AP_per_class[class_id] = calculate_ap_per_class(precisions, recalls, confidences)
 
         mAP = sum([AP_per_class[class_id] for class_id in range(1, num_class + 1)]) / num_class
         
