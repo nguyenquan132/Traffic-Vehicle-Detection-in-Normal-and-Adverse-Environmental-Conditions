@@ -82,8 +82,6 @@ def calculate_ap_per_class(precisions, recalls, confidences):
     sorted_indices = np.argsort(-confidences)  # Sắp xếp theo confidence giảm dần
     precisions = np.array(precisions)[sorted_indices]
     recalls = np.array(recalls)[sorted_indices]
-
-    precisions, recalls, _ = precision_recall_curve(recalls, precisions)
     
     # Tính AP dựa trên đường cong Precision-Recall
     return calculate_ap(precisions, recalls)
