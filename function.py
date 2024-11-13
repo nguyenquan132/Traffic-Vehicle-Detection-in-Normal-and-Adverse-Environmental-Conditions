@@ -57,10 +57,17 @@ def calculate_precision_recall(true_boxes, pred_boxes, iou_threshold=0.5):
         y_true.append(1)
         y_pred.append(0)
 
-    if len(y_true) == 0 or len(y_pred) == 0:
-        return 0.0, 0.0
+    if len(y_pred) == 0:  # Không có predicted boxes
+        precision = 1.0  # Precision được coi là 1 vì không có False Positives
     else:
-        return precision_score(y_true, y_pred), recall_score(y_true, y_pred)
+        precision = precision_score(y_true, y_pred, zero_division=1)
+
+    if len(y_true) == 0:  # Không có true boxes
+        recall = 0.0  # Recall là 0 vì không có True Positives
+    else:
+        recall = recall_score(y_true, y_pred, zero_division=1)
+    
+    return precision, recall
 
 def calculate_ap(precisions, recalls):
     precisions.append(1)
