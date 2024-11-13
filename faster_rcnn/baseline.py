@@ -72,7 +72,7 @@ if __name__ == '__main__':
                                                                                             model=model,
                                                                                             optimizer=optimizer,
                                                                                             device=device)
-        mAP, precisions_per_class, recalls_per_class, confidence_per_class = evaluate(val_dataloader=val_dataloader,
+        mAP, ap_per_class, precisions_per_class, recalls_per_class, confidence_per_class = evaluate(val_dataloader=val_dataloader,
                                                                                       model=model,
                                                                                       num_class=num_class-1,
                                                                                       iou_threshold=0.5,
@@ -84,9 +84,9 @@ if __name__ == '__main__':
         results["loss_objectness"].append(loss_objectness.item if isinstance(loss_objectness, torch.Tensor) else loss_objectness)
         results["loss_rpn_box_reg"].append(loss_rpn_box_reg.item if isinstance(loss_rpn_box_reg, torch.Tensor) else loss_rpn_box_reg)
 
-        matrix["confidence per class"].append(confidence_per_class)
-        matrix["precisions per class"].append(precisions_per_class)
-        matrix["recalls per class"].append(recalls_per_class)
+        matrix["confidence per class"] = confidence_per_class
+        matrix["precisions per class"] = precisions_per_class
+        matrix["recalls per class"] = recalls_per_class
 
     
  
