@@ -26,7 +26,7 @@ def evaluate(val_dataloader: DataLoader,
             outputs = model(image)
 
             batch_ap, batch_precision, batch_recall, batch_confidence = evaluate_predictions(predictions=outputs, 
-                                                                                             target=target, 
+                                                                                             targets=target, 
                                                                                              num_class=num_class, 
                                                                                              iou_threshold=iou_threshold)
 
