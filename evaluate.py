@@ -1,9 +1,9 @@
 from torch.utils.data import DataLoader
 import torchvision
 import torch
-from function import calculate_ap_per_class, calculate_precision_recall
-import torchvision.ops as ops
+from function import evaluate_predictions
 from tqdm.auto import tqdm
+import numpy as np
 
 def evaluate(val_dataloader: DataLoader,
               model: torchvision.models,
@@ -12,9 +12,11 @@ def evaluate(val_dataloader: DataLoader,
               device: torch.device):
     model = model.to(device)
     model.eval()
+
     precisions_per_class = {i: [] for i in range(1, num_class + 1)}
     recalls_per_class = {i: [] for i in range(1, num_class + 1)}
     confidence_per_class = {i: [] for i in range(1, num_class + 1)}
+    ap_per_class = {i: [] for i in range(1, num_class + 1)}
 
     with torch.inference_mode():
         for images, targets in tqdm(val_dataloader, total=len(val_dataloader)):
@@ -23,51 +25,28 @@ def evaluate(val_dataloader: DataLoader,
 
             outputs = model(image)
 
-            for img_idx, (target, output) in enumerate(zip(target, outputs)):
-                true_boxes = target['boxes'].cpu().detach().numpy()
-                true_labels = target['labels'].cpu().detach().numpy()
-                
-                pred_boxes = output['boxes'].cpu().detach().numpy()
-                pred_scores = output['scores'].cpu().detach().numpy()
-                pred_labels = output['labels'].cpu().detach().numpy()
+            batch_ap, batch_precision, batch_recall, batch_confidence = evaluate_predictions(predictions=outputs, 
+                                                                                             target=target, 
+                                                                                             num_class=num_class, 
+                                                                                             iou_threshold=iou_threshold)
 
-                # Áp dụng NMS để loại bỏ các box dư thừa
-                keep = ops.nms(torch.from_numpy(pred_boxes),
-                               torch.from_numpy(pred_scores),
-                               iou_threshold=iou_threshold)
-                pred_boxes = pred_boxes[keep]
-                pred_scores = pred_scores[keep]
-                pred_labels = pred_labels[keep]
+            # Cập nhật AP, precision, recall, confidence cho từng class
+            for class_id in range(1, num_class + 1):
+                ap_per_class[class_id].extend(batch_ap[class_id])
+                precisions_per_class[class_id].extend(batch_precision)
+                recalls_per_class[class_id].extend(batch_recall)
+                confidence_per_class[class_id].extend(batch_confidence[class_id])
 
-                for class_id in range(1, num_class + 1):
-                    # Lọc true và predicted boxes theo class_id
-                    true_boxes_class = true_boxes[true_labels == class_id]
-                    pred_boxes_class = pred_boxes[pred_labels == class_id]
-                    pred_scores_class = pred_scores[pred_labels == class_id]
-
-                    precision, recall = calculate_precision_recall(true_boxes=true_boxes_class,
-                                                                   pred_boxes=pred_boxes_class,
-                                                                   iou_threshold=iou_threshold)
-                    
-                    print(precision)
-                    print(precisions_per_class)
-                    
-                    # Lưu precision, recall và confidence scores cho từng class
-                    precisions_per_class[class_id].append(precision)
-                    recalls_per_class[class_id].append(recall)
-                    confidence_per_class[class_id].append(pred_scores_class)
-
-
-        AP_per_class = {}
-        for class_id in range(1, num_class + 1):
-            precisions = precisions_per_class[class_id]
-            recalls = recalls_per_class[class_id]
-            confidences = confidence_per_class[class_id]
-
-            AP_per_class[class_id] = calculate_ap_per_class(precisions, recalls, confidences)
-
-        mAP = sum([AP_per_class[class_id] for class_id in range(1, num_class + 1)]) / num_class
+        # Tính mean AP cho mỗi class
+        mAP_per_class = {
+            class_id: np.mean(aps) if len(aps) > 0 else 0 
+            for class_id, aps in ap_per_class.items()
+        }
         
-        return mAP, AP_per_class, precisions_per_class, recalls_per_class, confidence_per_class
+        # Tính tổng mAP
+        mAP = np.mean(list(mAP_per_class.values()))
+
+        
+        return mAP, mAP_per_class, precisions_per_class, recalls_per_class, confidence_per_class
             
 
