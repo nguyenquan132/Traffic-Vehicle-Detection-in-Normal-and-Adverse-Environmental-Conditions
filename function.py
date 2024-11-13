@@ -116,8 +116,11 @@ def precision_recall_curve(matrix, num_class, class_name):
     plt.figure(figsize=(10, 8))
     list_color = ['orange', 'purple', 'red', 'green']
     for class_id in range(1, num_class + 1):
-        plt.plot(matrix['precisions per class'][class_id], matrix['recalls per class'][class_id], 
-                 label=f'{class_name[class_id]}', color=list_color[class_id])
+        confidence = np.array(matrix['confidence per class'][class_id])
+        sorted_indices = np.argsort(-confidence)
+        precisions = np.array(matrix['precisions per class'][class_id])[sorted_indices]
+        recalls = np.array(matrix['recalls per class'][class_id])[sorted_indices]
+        plt.plot(precisions, recalls, label=f'{class_name[class_id]}', color=list_color[class_id])
         
     plt.xlabel('Recall')
     plt.ylabel('Precision')
@@ -125,12 +128,15 @@ def precision_recall_curve(matrix, num_class, class_name):
     plt.legend(loc='best')
     plt.show()
 
-def confidence_matrix(matrix, confidence, num_class, class_name, matrix_name):
+def confidence_matrix(matrix, confidence_per_class, num_class, class_name, matrix_name):
     plt.figure(figsize=(10, 8))
     list_color = ['orange', 'purple', 'red', 'green']
     for class_id in range(1, num_class + 1):
-        plt.plot(matrix[class_id], confidence[class_id], 
-                 label=f'{class_name[class_id]}', color=list_color[class_id])
+        confidence = np.array(confidence_per_class[class_id])
+        sorted_indices = np.argsort(-confidence)
+        sorted_matrix = np.array(matrix[class_id])[sorted_indices]
+        sorted_confidence = confidence[sorted_indices]
+        plt.plot(sorted_matrix, sorted_confidence, label=f'{class_name[class_id]}', color=list_color[class_id])
         
     plt.xlabel('Confidence')
     plt.ylabel(f'{matrix_name}')
