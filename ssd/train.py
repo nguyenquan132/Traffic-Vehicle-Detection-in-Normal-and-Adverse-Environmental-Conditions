@@ -79,8 +79,13 @@ def validate(valid_data_loader, model):
 if __name__ == '__main__':
     train_transform = A.Compose([
         A.Resize(300, 300),
-        #A.HorizontalFlip(p=0.5),
-        #A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
+        A.Blur(blur_limit=3, p=0.1),
+        A.MotionBlur(blur_limit=3, p=0.1),
+        A.MedianBlur(blur_limit=3, p=0.1),
+        A.ToGray(p=0.3),
+        A.RandomBrightnessContrast(p=0.3),
+        A.ColorJitter(p=0.3),
+        A.RandomGamma(p=0.3),
         A.ToFloat(max_value=255.0),
         ToTensorV2(p=1.0),  # Convert to tensor
     ], bbox_params=A.BboxParams(format='pascal_voc', label_fields=['class_labels']))
