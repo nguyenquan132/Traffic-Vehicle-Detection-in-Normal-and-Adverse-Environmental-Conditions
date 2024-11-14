@@ -195,7 +195,7 @@ def precision_recall_curve(matrix, num_class, class_name):
     }
     """
     plt.figure(figsize=(10, 8))
-    list_color = ['orange', 'purple', 'red', 'green']
+    list_color = {1: 'orange', 2: 'purple', 3: 'red', 4: 'green'}
     for class_id in range(1, num_class + 1):
         precisions = np.array(matrix['precisions per class'][class_id])
         recalls = np.array(matrix['recalls per class'][class_id])
@@ -209,7 +209,7 @@ def precision_recall_curve(matrix, num_class, class_name):
 
 def confidence_matrix(matrix, confidence_per_class, num_class, class_name, matrix_name):
     plt.figure(figsize=(10, 8))
-    list_color = ['orange', 'purple', 'red', 'green']
+    list_color = {1: 'orange', 2: 'purple', 3: 'red', 4: 'green'}
     for class_id in range(1, num_class + 1):
         confidence = np.array(confidence_per_class[class_id])
         sorted_indices = np.argsort(-confidence)
