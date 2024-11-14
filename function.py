@@ -164,7 +164,7 @@ def evaluate_predictions(predictions, targets, num_class, iou_threshold):
 
         return ap_per_class, precision_per_class, recall_per_class
 
-def loss_curve(results, title):
+def loss_mAP_curve(results):
     """
     results={
         "epoch_value": [],
