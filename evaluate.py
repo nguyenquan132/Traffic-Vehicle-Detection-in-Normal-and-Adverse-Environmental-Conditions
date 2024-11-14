@@ -42,15 +42,15 @@ def evaluate(val_dataloader: DataLoader,
                 if batch_confidence[class_id]:
                     confidence_per_class[class_id].extend(np.concatenate(batch_confidence[class_id]))
 
-        # Tính mean AP cho mỗi class
-        mAP_per_class = {
+        # Tính AP cho mỗi class
+        AP_per_class = {
             class_id: np.mean(aps) if len(aps) > 0 else 0
             for class_id, aps in ap_per_class.items()
         }
 
-        # Tính tổng mAP
-        mAP = np.mean(list(mAP_per_class.values()))
+        # Tính mAP
+        mAP = np.mean(list(AP_per_class.values()))
         
 
 
-        return mAP, mAP_per_class, precisions_per_class, recalls_per_class, confidence_per_class
+        return mAP, AP_per_class, precisions_per_class, recalls_per_class, confidence_per_class
