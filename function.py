@@ -167,17 +167,57 @@ def evaluate_predictions(predictions, targets, num_class, iou_threshold):
 def loss_curve(results, title):
     """
     results={
-        "epoch_value" = [],
-        "loss" = []
+        "epoch_value": [],
+        "loss": [],
+        "loss_classifier": [],
+        "loss_box_reg": [],
+        "loss_objectness": [],
+        "loss_rpn_box_reg": [],
+        "mAP50": []
         }
     """
     epoch = results['epoch_value']
     loss = results['loss']
-    plt.figure(figsize=(10, 8))
-    plt.plot(epoch, loss, marker='o', color='#87CEEB')
-    plt.title(f"train/{title}")
-    plt.xlabel("epoch")
-    plt.ylabel("loss")
+    loss_classifier = results['loss_classifier'] 
+    loss_box_reg = results['loss_box_reg']
+    loss_objectness = results['loss_objectness']
+    loss_rpn_box_reg = results['loss_rpn_box_reg']
+    mAP50 = results["mAP50"]
+
+    fig, axes = plt.subplots(2, 3, figsize=(16, 9))
+
+    axes[0, 0].plot(epoch, loss, marker='o', color='#87CEEB')
+    axes[0, 0].set_title("total loss")
+    axes[0, 0].set_xlabel("epoch")
+    axes[0, 0].set_ylabel("loss")
+
+    axes[0, 1].plot(epoch, loss_classifier, marker='o', color='#87CEEB')
+    axes[0, 1].set_title("classifier loss")
+    axes[0, 1].set_xlabel("epoch")
+    axes[0, 1].set_ylabel("classifier loss")
+
+    axes[0, 2].plot(epoch, loss_box_reg, marker='o', color='#87CEEB')
+    axes[0, 2].set_title("box loss")
+    axes[0, 2].set_xlabel("epoch")
+    axes[0, 2].set_ylabel("box loss")
+
+    axes[1, 0].plot(epoch, loss_objectness, marker='o', color='#87CEEB')
+    axes[1, 0].set_title("objectness loss")
+    axes[1, 0].set_xlabel("epoch")
+    axes[1, 0].set_ylabel("objectness loss")
+
+    axes[1, 1].plot(epoch, loss_rpn_box_reg, marker='o', color='#87CEEB')
+    axes[1, 1].set_title("rpn_box loss")
+    axes[1, 1].set_xlabel("epoch")
+    axes[1, 1].set_ylabel("rpn_box loss")
+
+    axes[1, 2].plot(epoch, mAP50, marker='o', color='#87CEEB')
+    axes[1, 2].set_title("mAP50")
+    axes[1, 2].set_xlabel("epoch")
+    axes[1, 2].set_ylabel("mAP50")
+
+    plt.tight_layout()
+    plt.savefig("results.png")
     plt.show()
 
 def precision_recall_curve(metrics, num_class, class_name):
@@ -202,6 +242,7 @@ def precision_recall_curve(metrics, num_class, class_name):
     plt.ylabel('Precision')
     plt.title('Precision-Recall Curve')
     plt.legend(loc='best')
+    plt.savefig("PR_curve.png")
     plt.show()
 
 def confidence_metric(metric, num_class, class_name, metric_name):
@@ -218,6 +259,7 @@ def confidence_metric(metric, num_class, class_name, metric_name):
     plt.ylabel(f'{metric_name}')
     plt.title(f'{metric_name}-Confidence Curve')
     plt.legend(loc='best')
+    plt.savefig(f"{metric_name}_curve")
     plt.show()
 
 
