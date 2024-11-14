@@ -78,8 +78,6 @@ def calculate_precision_recall_ap(true_boxes, true_labels, pred_boxes, pred_scor
     # Tính cumulative precision và recall
     cum_tp = np.cumsum(tp)
     cum_fp = np.cumsum(fp)
-    
-    print(f"acc tp: {cum_tp}, acc_fp: {cum_fp}")
 
     recalls = cum_tp / num_gt 
     precisions = cum_tp / (cum_tp + cum_fp)
@@ -88,12 +86,6 @@ def calculate_precision_recall_ap(true_boxes, true_labels, pred_boxes, pred_scor
     ap = 0
     for i in range(1, num_predictions):
          ap += max(precisions[i], precisions[i - 1]) * (recalls[i] - recalls[i - 1])
-            
-    print(f"precisions, recalls, ap sau khi tính: \n")
-    print(precisions)
-    print(recalls)
-    print(ap)
-    print("\n")
 
     return precisions, recalls, ap
 
@@ -137,8 +129,6 @@ def evaluate_predictions(predictions, targets, num_class, iou_threshold):
                 pred_boxes = pred_boxes[keep]
                 pred_scores = pred_scores[keep]
                 pred_labels = pred_labels[keep]
-                
-                print(f"sau khi nms: \n{pred_boxes}")
 
                 true_mask = (true_labels == class_id)
                 pred_mask = (pred_labels == class_id)
@@ -149,8 +139,7 @@ def evaluate_predictions(predictions, targets, num_class, iou_threshold):
                 all_pred_boxes.append(pred_boxes[pred_mask])
                 all_pred_scores.append(pred_scores[pred_mask])
                 all_pred_labels.append(pred_labels[pred_mask])
-                      
-                print(f"sau khi gộp list với class {class_id}: \n{all_pred_boxes}")
+
                 
             # Nối các danh sách để có tất cả predictions và targets của class hiện tại
             all_true_boxes = torch.cat(all_true_boxes).cpu().numpy()
@@ -158,8 +147,6 @@ def evaluate_predictions(predictions, targets, num_class, iou_threshold):
             all_pred_scores = torch.cat(all_pred_scores).cpu().numpy()
             all_true_labels = torch.cat(all_true_labels).cpu().numpy()
             all_pred_labels = torch.cat(all_pred_labels).cpu().numpy()
-            
-            print(f"sau khi nối của class {class_id}: \n{all_pred_boxes}")
 
             if len(all_true_boxes) == 0 and len(all_pred_boxes) == 0:
                 continue
@@ -172,9 +159,6 @@ def evaluate_predictions(predictions, targets, num_class, iou_threshold):
                 all_pred_labels,
                 iou_threshold=iou_threshold
             )
-            print(f"recalls và predictions của class: {class_id}\n")
-            print(precisions)
-            print(recalls)
             
             ap_per_class[class_id].append(ap)
             precision_per_class[class_id].append(precisions)
