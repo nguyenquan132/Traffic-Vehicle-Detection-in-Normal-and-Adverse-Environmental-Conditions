@@ -1,7 +1,7 @@
 from torch.utils.data import DataLoader
 import torchvision
 import torch
-from function import evaluate_predictions
+from .function import evaluate_predictions
 from tqdm.auto import tqdm
 import numpy as np
 
@@ -25,28 +25,32 @@ def evaluate(val_dataloader: DataLoader,
 
             outputs = model(image)
 
-            batch_ap, batch_precision, batch_recall, batch_confidence = evaluate_predictions(predictions=outputs, 
-                                                                                             targets=target, 
-                                                                                             num_class=num_class, 
+            batch_ap, batch_precision, batch_recall, batch_confidence = evaluate_predictions(predictions=outputs,
+                                                                                             targets=target,
+                                                                                             num_class=num_class,
                                                                                              iou_threshold=iou_threshold)
 
             # Cập nhật AP, precision, recall, confidence cho từng class
             for class_id in range(1, num_class + 1):
                 ap_per_class[class_id].extend(batch_ap[class_id])
-                precisions_per_class[class_id].extend(batch_precision)
-                recalls_per_class[class_id].extend(batch_recall)
-                confidence_per_class[class_id].extend(batch_confidence[class_id])
+                
+                # Chỉ gọi np.concatenate nếu có giá trị
+                if batch_precision[class_id]:
+                    precisions_per_class[class_id].extend(np.concatenate(batch_precision[class_id]))
+                if batch_recall[class_id]:
+                    recalls_per_class[class_id].extend(np.concatenate(batch_recall[class_id]))
+                if batch_confidence[class_id]:
+                    confidence_per_class[class_id].extend(np.concatenate(batch_confidence[class_id]))
 
         # Tính mean AP cho mỗi class
         mAP_per_class = {
-            class_id: np.mean(aps) if len(aps) > 0 else 0 
+            class_id: np.mean(aps) if len(aps) > 0 else 0
             for class_id, aps in ap_per_class.items()
         }
-        
+
         # Tính tổng mAP
         mAP = np.mean(list(mAP_per_class.values()))
-
         
-        return mAP, mAP_per_class, precisions_per_class, recalls_per_class, confidence_per_class
-            
 
+
+        return mAP, mAP_per_class, precisions_per_class, recalls_per_class, confidence_per_class
