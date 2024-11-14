@@ -38,16 +38,18 @@ def get_file_path(folder):
     sub_folders = list(sorted(os.listdir(folder)))
     sub_folder_paths = [os.path.join(folder, sub_folder) for sub_folder in sub_folders]
     # Kiểm tra tập train hay test
-    if os.listdir(sub_folder_paths[0]) is not None:
-        # Duyêt qua tập daytime và nighttime
-        for sub_folder_path in sub_folder_paths:
-            data_paths = list(sorted(os.listdir(sub_folder_path)))
-            data_path_file = [os.path.join(sub_folder_path, data_path) for data_path in data_paths]
-            data.extend(data_path_file)
+    try:
+        contents = os.listdir(sub_folder_paths[0])
+        if contents:
+            # Duyêt qua tập daytime và nighttime
+            for sub_folder_path in sub_folder_paths:
+                data_paths = list(sorted(os.listdir(sub_folder_path)))
+                data_path_file = [os.path.join(sub_folder_path, data_path) for data_path in data_paths]
+                data.extend(data_path_file)
 
-        return {'folder': 'train', 'file_train': data}
-    else:
-        return {'folder': 'test', 'file_test': sub_folder_paths}
+            return {'folder': 'train', 'file_train': data}
+    except NotADirectoryError:
+        return {'folder': 'test', 'file_test': sub_folder_paths} 
 
 
 class TrafficVehicle(Dataset):
@@ -88,27 +90,34 @@ class TrafficVehicle(Dataset):
         return len(self.image)
     def __getitem__(self, index: int):
         img = self.load_image(index)
-        target = read_filetxt(self.txt[index])
-
-        # kiểm tra transform_box có phải là center hoặc corner không
-        if self.transform_box_type not in ['center', 'corner']:
-            raise ValueError("transform_box_type phải là 'center' hoặc 'corner'!")
-        
-        # transform_box bounding box 
-        if self.transform_box_type == "corner":
-            height, width = img.shape[:2]
-            target['boxes'] = [transform_box(box, height, width) for box in target['boxes']]
-
-        # Áp dụng transforms cho image và box
-        if self.transforms is not None:
-            transformed = self.transforms(image=img, bboxes=target['boxes'], class_labels=target['labels'])
-            img = transformed['image']
-            target['boxes'] = transformed['bboxes']
-            target['labels'] = transformed['class_labels']
-
-        target['boxes'] = torch.tensor(target['boxes'], dtype=torch.float32)
-        target['labels'] = torch.tensor(target['labels'], dtype=torch.int64)
-        return img, target
+        file_path = os.path.basename(self.image[index])
+        if self.data['folder'] == 'train': 
+            target = read_filetxt(self.txt[index])
+    
+            # kiểm tra transform_box có phải là center hoặc corner không
+            if self.transform_box_type not in ['center', 'corner']:
+                raise ValueError("transform_box_type phải là 'center' hoặc 'corner'!")
+            
+            # transform_box bounding box 
+            if self.transform_box_type == "corner":
+                height, width = img.shape[:2]
+                target['boxes'] = [transform_box(box, height, width) for box in target['boxes']]
+    
+            # Áp dụng transforms cho image và box
+            if self.transforms is not None:
+                transformed = self.transforms(image=img, bboxes=target['boxes'], class_labels=target['labels'])
+                img = transformed['image']
+                target['boxes'] = transformed['bboxes']
+                target['labels'] = transformed['class_labels']
+    
+            target['boxes'] = torch.tensor(target['boxes'], dtype=torch.float32)
+            target['labels'] = torch.tensor(target['labels'], dtype=torch.int64)
+            return img, target
+        else:
+            if self.transforms is not None:
+                transformed = self.transforms(image=img)
+                img = transformed['image']
+            return img, file_path
 
 
 
