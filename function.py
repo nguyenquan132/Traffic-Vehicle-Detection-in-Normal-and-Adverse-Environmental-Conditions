@@ -103,7 +103,6 @@ def evaluate_predictions(predictions, targets, num_class, iou_threshold):
         ap_per_class = {i: [] for i in range(1, num_class + 1)}
         precision_per_class = {i: [] for i in range(1, num_class + 1)}
         recall_per_class = {i: [] for i in range(1, num_class + 1)}
-        confidence_per_class = {i: [] for i in range(1, num_class + 1)}
         
         for class_id in range(1, num_class + 1):
             all_true_boxes = []
@@ -139,7 +138,6 @@ def evaluate_predictions(predictions, targets, num_class, iou_threshold):
                 all_pred_boxes.append(pred_boxes[pred_mask])
                 all_pred_scores.append(pred_scores[pred_mask])
                 all_pred_labels.append(pred_labels[pred_mask])
-
                 
             # Nối các danh sách để có tất cả predictions và targets của class hiện tại
             all_true_boxes = torch.cat(all_true_boxes).cpu().numpy()
@@ -164,10 +162,7 @@ def evaluate_predictions(predictions, targets, num_class, iou_threshold):
             precision_per_class[class_id].append(precisions)
             recall_per_class[class_id].append(recalls)
 
-            # Lưu lại confidence scores tương ứng với predictions của class
-            confidence_per_class[class_id].append(all_pred_scores)
-
-        return ap_per_class, precision_per_class, recall_per_class, confidence_per_class
+        return ap_per_class, precision_per_class, recall_per_class
 
 def loss_curve(results, title):
     """
@@ -185,7 +180,7 @@ def loss_curve(results, title):
     plt.ylabel("loss")
     plt.show()
 
-def precision_recall_curve(matrix, num_class, class_name):
+def precision_recall_curve(metrics, num_class, class_name):
     """
     Precision, recall của mỗi class
     matrix = {
@@ -197,29 +192,31 @@ def precision_recall_curve(matrix, num_class, class_name):
     plt.figure(figsize=(10, 8))
     list_color = {1: 'orange', 2: 'purple', 3: 'red', 4: 'green'}
     for class_id in range(1, num_class + 1):
-        precisions = np.array(matrix['precisions per class'][class_id])
-        recalls = np.array(matrix['recalls per class'][class_id])
-        plt.plot(precisions, recalls, label=f'{class_name[class_id]}', color=list_color[class_id])
-
+        precisions = np.array(metrics['precisions per class'][class_id])
+        recalls = np.array(metrics['recalls per class'][class_id])
+        plt.plot(recalls, precisions, label=f'{class_name[class_id]}', color=list_color[class_id])
+    
+    plt.xlim(0, 1)
+    plt.ylim(0, 1)
     plt.xlabel('Recall')
     plt.ylabel('Precision')
     plt.title('Precision-Recall Curve')
     plt.legend(loc='best')
     plt.show()
 
-def confidence_matrix(matrix, confidence_per_class, num_class, class_name, matrix_name):
+def confidence_metric(metric, num_class, class_name, metric_name):
     plt.figure(figsize=(10, 8))
     list_color = {1: 'orange', 2: 'purple', 3: 'red', 4: 'green'}
+    confidence = np.linspace(0, 1, num=len(metric[1]))
     for class_id in range(1, num_class + 1):
-        confidence = np.array(confidence_per_class[class_id])
-        sorted_indices = np.argsort(-confidence)
-        sorted_matrix = np.array(matrix[class_id])[sorted_indices]
-        sorted_confidence = confidence[sorted_indices]
-        plt.plot(sorted_matrix, sorted_confidence, label=f'{class_name[class_id]}', color=list_color[class_id])
-
+        metric_id = np.array(metric[class_id])
+        plt.plot(confidence, metric_id, label=f'{class_name[class_id]}', color=list_color[class_id])
+    
+    plt.xlim(0, 1)
+    plt.ylim(0, 1)
     plt.xlabel('Confidence')
-    plt.ylabel(f'{matrix_name}')
-    plt.title(f'{matrix_name}-Confidence Curve')
+    plt.ylabel(f'{metric_name}')
+    plt.title(f'{metric_name}-Confidence Curve')
     plt.legend(loc='best')
     plt.show()
 
