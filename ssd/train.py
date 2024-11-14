@@ -91,11 +91,11 @@ if __name__ == '__main__':
             ToTensorV2(p=1.0),
         ], bbox_params=A.BboxParams(format='pascal_voc', label_fields=['class_labels']))
 
-    train_data_path = '/kaggle/input/traffic-vehicle-detection/data/data/train'
+    train_data_path = os.path.join(os.path.dirname(__file__), '..', 'data/train')
     train_dataset = TrafficVehicle(train_data_path, transforms=train_transform, transform_box_type="corner")
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=False, collate_fn=lambda x: tuple(zip(*x)))
 
-    val_data_path = '/kaggle/input/traffic-vehicle-detection/data/data/val'
+    val_data_path = os.path.join(os.path.dirname(__file__), '..', 'data/val')
     val_dataset = TrafficVehicle(val_data_path, transforms=val_transform, transform_box_type="corner")
     val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False, collate_fn=lambda x: tuple(zip(*x))) 
 
