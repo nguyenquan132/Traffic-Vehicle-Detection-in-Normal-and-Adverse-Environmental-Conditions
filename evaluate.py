@@ -1,7 +1,7 @@
 from torch.utils.data import DataLoader
 import torchvision
 import torch
-from .function import evaluate_predictions
+from function import evaluate_predictions
 from tqdm.auto import tqdm
 import numpy as np
 
