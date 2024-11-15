@@ -90,4 +90,6 @@ class TrafficModel():
                         class_name=class_name, metric_name="Recall")
     
     def test(self):
-        inference()
+        pass
+    def test_one_image(self):
+        pass
