@@ -6,7 +6,7 @@ from torchvision import tv_tensors
 import torch 
 epsilon = 1e-6
 
-def transform_box(box, height, width):
+def transform_box_pascal_voc(box, height, width):
     
     x_center, y_center, box_width, box_height = box
     # Giới hạn biên cho các bounding box 
@@ -16,7 +16,16 @@ def transform_box(box, height, width):
     y_max = min((y_center + box_height / 2) * height, height - epsilon)
 
     return [x_min, y_min, x_max, y_max]
+
+def transform_box_coco(box, height, width):
+    x_center, y_center, box_width, box_height = box
     
+    x = max((x_center - box_width / 2) * width, 0 + epsilon)
+    y = max((y_center - box_height / 2) * height, 0 + epsilon)
+    width = box_width * width
+    height = box_height * height
+    
+    return [x, y, width, height]
 
 def read_filetxt(file_txt):
     results = {'labels': [], 'boxes': []}
@@ -54,15 +63,16 @@ def get_file_path(folder):
 
 class TrafficVehicle(Dataset):
     def __init__(self, folder: str, transforms=None, 
-                 transform_box_type: str="center"):
+                 transform_box_type: str="yolo"):
         """ 
             transform_box sẽ chuyển tọa độ bounding box sang để phù hợp với các model, có hai kiểu để chuyển đổi 
             là "center" hoặc "corner", mặc định là "center". Nếu transform_type="center" thì mặc định các model sử dụng bounding box 
             theo tọa độ tâm và kích thước. Ngược lại, transform_type="corner" các model sẽ sử dụng bounding box theo tọa độ góc.
 
-            Ví dụ: trong bài toán object detection các tọa độ bounding box thường chia thành hai kiểu:
-                - (x_min, y_min, x_max, y_max)
-                - (x_center, y_center, width, height)
+            Ví dụ: trong bài toán object detection các tọa độ bounding box:
+                - (x_min, y_min, x_max, y_max) với pascal_voc
+                - (x_center, y_center, width, height) với yolo
+                - (x, y, width, height) với coco
             
             Lưu ý: Do trong quá trình gán nhãn theo định dạng YOLO (x_center, y_center, width, height) nên không cần transform_box nữa.
         """
@@ -95,13 +105,15 @@ class TrafficVehicle(Dataset):
             target = read_filetxt(self.txt[index])
     
             # kiểm tra transform_box có phải là center hoặc corner không
-            if self.transform_box_type not in ['center', 'corner']:
-                raise ValueError("transform_box_type phải là 'center' hoặc 'corner'!")
+            if self.transform_box_type not in ['pascal_voc', 'coco', 'yolo']:
+                raise ValueError("transform_box_type phải là 'yolo' hoặc pascal_voc' hoặc 'coco'!")
             
+            height, width = img.shape[:2]
             # transform_box bounding box 
-            if self.transform_box_type == "corner":
-                height, width = img.shape[:2]
-                target['boxes'] = [transform_box(box, height, width) for box in target['boxes']]
+            if self.transform_box_type == "pascal_voc":
+                target['boxes'] = [transform_box_pascal_voc(box, height, width) for box in target['boxes']]
+            if self.transform_box_type == "coco":
+                target['boxes'] = [transform_box_coco(box, height, width) for box in target['boxes']]
     
             # Áp dụng transforms cho image và box
             if self.transforms is not None:
@@ -118,7 +130,3 @@ class TrafficVehicle(Dataset):
                 transformed = self.transforms(image=img)
                 img = transformed['image']
             return img, file_path
-
-
-
-
