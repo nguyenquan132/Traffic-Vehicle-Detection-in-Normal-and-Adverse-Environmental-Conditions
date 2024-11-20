@@ -39,7 +39,7 @@ def get_file_path(folder):
     # Kiểm tra tập train hay test
     mode = folder.split('/')
     if mode[1] == "train":
-        if os.listdir(sub_folder_paths[0]) is None:
+        if os.listdir(sub_folder_paths[0]) is not None:
             # Duyêt qua tập daytime và nighttime
             for sub_folder_path in sub_folder_paths:
                 data_paths = list(sorted(os.listdir(sub_folder_path)))
