@@ -37,7 +37,8 @@ def get_file_path(folder):
     sub_folders = list(sorted(os.listdir(folder)))
     sub_folder_paths = [os.path.join(folder, sub_folder) for sub_folder in sub_folders]
     # Kiểm tra tập train hay test
-    try:
+    mode = folder.split('/')
+    if mode[1] == "train":
         contents = os.listdir(sub_folder_paths[0])
         if contents:
             # Duyêt qua tập daytime và nighttime
@@ -47,7 +48,9 @@ def get_file_path(folder):
                 data.extend(data_path_file)
 
             return {'folder': 'train', 'file_train': data}
-    except NotADirectoryError:
+        else:
+            return {'folder': 'train', 'file_train': sub_folder_paths}
+    else:
         return {'folder': 'test', 'file_test': sub_folder_paths} 
 
 
