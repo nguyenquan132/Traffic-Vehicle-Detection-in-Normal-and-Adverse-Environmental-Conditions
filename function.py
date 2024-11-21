@@ -79,8 +79,16 @@ def calculate_precision_recall_ap(true_boxes, true_labels, pred_boxes, pred_scor
     cum_tp = np.cumsum(tp)
     cum_fp = np.cumsum(fp)
 
-    recalls = cum_tp / num_gt if num_gt > 0 else 0
-    precisions = cum_tp / (cum_tp + cum_fp) if (cum_tp + cum_fp).sum() > 0 else 0
+    # Tính recalls
+    recalls = np.zeros_like(cum_tp, dtype=float)
+    mask_num_gt = num_gt > 0
+    recalls[mask_num_gt] = cum_tp[mask_num_gt] / num_gt[mask_num_gt]
+
+    # Tính precisions 
+    precisions = np.zeros_like(cum_tp, dtype=float)
+    mask_total = (cum_tp + cum_fp).sum() > 0
+    denominator = cum_tp + cum_fp
+    precisions[mask_total] = cum_tp[mask_total] / denominator[mask_total]
 
     # Tính AP using Interpolation all point
     ap = 0
