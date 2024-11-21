@@ -38,7 +38,7 @@ def get_file_path(folder):
     sub_folder_paths = [os.path.join(folder, sub_folder) for sub_folder in sub_folders]
     # Kiểm tra tập train hay test
     mode = folder.split('/')
-    if "train" or "val" in mode:
+    if any(key in mode for key in ["train", "val"]):
         if os.path.isdir(sub_folder_paths[0]):
             # Duyêt qua tập daytime và nighttime
             for sub_folder_path in sub_folder_paths:
