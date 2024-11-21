@@ -80,7 +80,7 @@ def calculate_precision_recall_ap(true_boxes, true_labels, pred_boxes, pred_scor
     cum_fp = np.cumsum(fp)
 
     recalls = cum_tp / num_gt if num_gt > 0 else 0
-    precisions = cum_tp / (cum_tp + cum_fp) if (cum_tp + cum_fp) > 0 else 0
+    precisions = cum_tp / (cum_tp + cum_fp) if (cum_tp + cum_fp).sum() > 0 else 0
 
     # Tính AP using Interpolation all point
     ap = 0
