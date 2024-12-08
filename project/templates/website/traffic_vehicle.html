@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<htm lang="vi">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Dashboard</title>
+        <link rel="stylesheet" href="traffic_vehicle.css">
+    </head>
+    <body>
+        <div class="container">
+            <div class="traffic_monitor">
+                <div class="header">
+                    <p>Traffic Vehicle System</p>
+                </div>
+                <div class="video" id="video">
+                    <p>Live Camera Feed</p>
+                </div>
+                <div class="information">
+                    <p>Box 4</p>
+                </div>
+            </div>
+            <div class="button">
+                <!-- <p>Cameras</p>
+                <div class="api">
+                    <label for="url">API KEY</label>
+                    <input type="text" name="url" id="url">
+                </div>
+                <button class="start">Start</button> -->
+                <form id="uploadForm">
+                    <input type="file" id="fileInput" accept="image/*,video/*" style="display: none;">
+                    <button type="submit" class="upload">Upload file</button>
+                </form>
+            </div>
+        </div>
+        <script src="traffic_vehicle.js"></script>
+    </body>
+</htm>
