@@ -1,0 +1,9 @@
+train: 
+  - '/kaggle/input/enhance-night/enhance/train/images'
+  
+ 
+val: 
+  - '/kaggle/input/enhance-night/enhance/val/images'
+
+nc: 4  # Số lớp, ở đây là 4
+names: ['0', '1', '2', '3']  # Đặt tên lớp trùng với ID

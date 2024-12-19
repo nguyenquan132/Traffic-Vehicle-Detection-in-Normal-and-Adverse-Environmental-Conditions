@@ -1,0 +1,12 @@
+train: 
+  - 'Z:/traffic_detection/report/data/train/daytime/images'
+  - 'Z:/traffic_detection/report/data/train/nighttime/images'
+  
+ 
+val: 
+  - 'Z:/traffic_detection/report/data/val/daytime/images'
+  - 'Z:/traffic_detection/report/data/val/nighttime/images'
+
+
+nc: 4  # Số lớp, ở đây là 4
+names: ['0', '1', '2', '3']  # Đặt tên lớp trùng với ID

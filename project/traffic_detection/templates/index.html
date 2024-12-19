@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Vehicle Detection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            display: flex;
+            justify-content: space-between;
+        }
+        .image-container {
+            width: 48%;
+            text-align: center;
+        }
+        .image-container img {
+            max-width: 100%;
+            border: 1px solid #ddd;
+            padding: 5px;
+            border-radius: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .message {
+            color: red;
+            margin-top: 20px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center;">Traffic Vehicle Detection</h1>
+    <form action="/upload" method="post" enctype="multipart/form-data" style="text-align: center;">
+        <input type="file" name="file" accept="image/*">
+        <button type="submit">Upload</button>
+    </form>
+
+    {% if message %}
+    <p class="message">{{ message }}</p>
+    {% endif %}
+
+    {% if original_image %}
+    <div class="container">
+        <div class="image-container">
+            <h3>Original Image</h3>
+            <img src="{{ url_for('static', filename='uploads/' + original_image) }}" alt="Original Image">
+        </div>
+        <div class="image-container">
+            <h3>Detected Image</h3>
+            {% if detected_image %}
+            <img src="{{ url_for('static', filename='results/' + detected_image) }}" alt="Detected Image">
+            {% else %}
+            <p>No detected image available.</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if detection_data %}
+    <h2>Detection Results</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>S/N</th>
+                <th>Label</th>
+                <th>X</th>
+                <th>Y</th>
+                <th>Width</th>
+                <th>Height</th>
+                <th>Confidence</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for detection in detection_data %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ detection.label }}</td>
+                <td>{{ detection.x }}</td>
+                <td>{{ detection.y }}</td>
+                <td>{{ detection.w }}</td>
+                <td>{{ detection.h }}</td>
+                <td>{{ detection.confidence | round(2) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</body>
+</html>

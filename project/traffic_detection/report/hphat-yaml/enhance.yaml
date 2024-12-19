@@ -1,0 +1,13 @@
+train: 
+  - '/kaggle/input/mydataset/data/train/daytime/images' # Đường dẫn đến thư mục chứa ảnh
+  - '/kaggle/input/mydataset/data/train/nighttime/images'
+  - '/kaggle/input/enhance-night/enhance/train/images'
+  
+ 
+val: 
+  - '/kaggle/input/mydataset/data/val/daytime/images'
+  - '/kaggle/input/mydataset/data/val/nighttime/images'
+  - '/kaggle/input/enhance-night/enhance/val/images'
+
+nc: 4  # Số lớp, ở đây là 4
+names: ['0', '1', '2', '3']  # Đặt tên lớp trùng với ID

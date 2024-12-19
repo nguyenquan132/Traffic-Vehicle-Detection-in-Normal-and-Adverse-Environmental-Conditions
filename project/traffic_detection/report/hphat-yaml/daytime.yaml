@@ -1,0 +1,8 @@
+train: 
+  - '/kaggle/input/mydataset/data/train/daytime/images' # Đường dẫn đến thư mục chứa ảnh
+ 
+val: 
+  - '/kaggle/input/mydataset/data/val/daytime/images'
+
+nc: 4  # Số lớp, ở đây là 4
+names: ['0', '1', '2', '3']  # Đặt tên lớp trùng với ID
