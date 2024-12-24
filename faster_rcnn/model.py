@@ -1,10 +1,46 @@
 from evaluate import evaluate
 from .train import train_step
 import numpy as np
-from ssd import inference
 from torch import nn
 from function import loss_mAP_curve, precision_recall_curve, confidence_metric
 import torch
+import cv2
+import supervision as sv
+
+class_name = {0: "motorbike",
+              1: "car",
+              2: "coach",
+              3: "container"}
+
+def MMS(score_threshold, output):
+    boxes_array, labels_array, scores_array = [], [], []
+    for i in range(len(output['scores'])):
+        if output['scores'][i] >= score_threshold:
+            boxes_array.append(output['boxes'][i])
+            labels_array.append(output['labels'][i])
+            scores_array.append(output['scores'][i])
+
+    return np.array(boxes_array), np.array(labels_array), np.array(scores_array)
+
+def draw_box(image, output, score_threshold):
+    bounding_box_annotator = sv.BoxAnnotator(thickness=2)
+    label_annotator = sv.LabelAnnotator(text_position=sv.Position.TOP_CENTER)
+
+    xyxy, class_id, confidence = MMS(score_threshold, output)
+
+    detections = sv.Detections(
+        xyxy=xyxy,
+        confidence=confidence,
+        class_id=class_id
+    )
+
+    labels = [f"{class_name[class_id]} {conf:.2f}" for _, _, conf, class_id, *_ in detections]
+
+    frame = image.copy()
+    image_annotator = bounding_box_annotator.annotate(scene=frame, detections=detections)
+    image_annotator = label_annotator.annotate(scene=image_annotator, detections=detections, labels=labels)
+
+    return image_annotator
 
 class TrafficModel():
     def __init__(self, model):
@@ -89,7 +125,12 @@ class TrafficModel():
         confidence_metric(metric=metrics["recalls per class"], num_class=num_class-1,
                         class_name=class_name, metric_name="Recall")
     
-    def test(self):
-        pass
-    def test_one_image(self):
-        pass
+    def test_one_image(self, img, score_threshold):
+        with torch.inference_mode():
+            output = self.model(img.unsqueeze(0))[0]
+        image_annotator = draw_box(img, output, score_threshold)
+
+        cv2.imshow('Video Preview', image_annotator)
+
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
