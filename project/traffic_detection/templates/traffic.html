@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Vehicle Detection</title>
+    <style>
+        * {
+            box-sizing: border-box
+        }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h2 {
+            text-align: center;
+            margin-top: 5px;
+            margin-bottom: 5px;
+        }
+        .container {
+            border: 1px solid #000;
+            max-width: 55%;
+            min-height: 60vh;
+            margin: 20px auto;
+            padding: 5px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .message {
+            color: red;
+            margin-top: 20px;
+            font-size: 16px;
+        }
+        .predict {
+            font-size: 20px;
+            border: 1px solid #000;
+            display: grid;
+            grid-template-columns: 3fr 1fr 1fr;
+            gap: 5px;
+            width: 40%;
+            margin: 0 auto;
+            border-radius: 5px;
+        }
+        .predict button {
+            background-color: aqua;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: inherit;
+            border: none;
+            border-radius: inherit;
+        }
+        .predict button.upload:hover {
+            background-color: yellow;
+        }
+        .predict button.stop:hover {
+            background-color: red;
+        }
+        .predict input {
+            font-size: inherit;
+            border: none;
+            min-height: 100%;
+            display: none;
+        }
+        .predict label {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+    </style>
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+</head>
+<body>
+    <h1 style="text-align: center;">Traffic Vehicle Detection</h1>
+    <div class="predict">
+        <label for="fileInput" id="textLabel">Choose file</label>
+        <input type="file" id="fileInput" accept="image/*,video/*">
+        <button type="button" id="uploadButton" class="upload">Upload</button>
+        <button type="button" id="stopButton" class="stop">Stop</button>
+    </div>
+    <div class="container">
+        <div id="video" class="video"></div>
+    </div>
+    <div id="information" class="information"></div>
+    
+</body>
+<script>
+    const fileInput = document.getElementById("fileInput");
+    const uploadButton = document.getElementById("uploadButton")
+    const video = document.getElementById("video");
+    const information_vehicle = document.getElementById("information");
+    const stopButton = document.getElementById("stopButton");
+    const textLabel = document.getElementById("textLabel");
+    const socket = io("http://127.0.0.1:5000");
+
+    socket.on('connect', () => {
+        console.log('Connected to WebSocket');
+    });
+
+    socket.on('video_stream', (data) => {
+        console.log('Received frame');
+        let frameBase64 = data.frame;
+        let vehicleInfo = data.detection_data;
+        video.innerHTML = `<img src="data:image/jpeg;base64,${frameBase64}" alt="Video Stream" 
+        style="max-width: 100%; max-height: 100%; object-fit: contain;">`;
+
+        try {
+            vehicleInfo = JSON.parse(vehicleInfo);  // Chuyển chuỗi thành đối tượng
+        } catch (error) {
+            console.error("Failed to parse vehicleInfo as JSON", error);
+            return;
+        }
+        console.log(vehicleInfo.length)
+        let tableContent = '';
+        for (let i = 0; i < vehicleInfo.length; i++) {
+            tableContent += `<tr>
+                <td>${i + 1}</td>
+                <td>${vehicleInfo[i].label}</td>
+                <td>${vehicleInfo[i].x}</td>
+                <td>${vehicleInfo[i].y}</td>
+                <td>${vehicleInfo[i].w}</td>
+                <td>${vehicleInfo[i].h}</td>
+                <td>${vehicleInfo[i].confidence}</td>
+            </tr>`;
+        }
+        information_vehicle.innerHTML = `
+        <h2>Traffic Information</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>S/N</th>
+                    <th>Label</th>
+                    <th>X</th>
+                    <th>Y</th>
+                    <th>Width</th>
+                    <th>Height</th>
+                    <th>Confidence</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${tableContent}
+            </tbody>
+        </table>`;
+    });
+    fileInput.addEventListener("change", (event) => {
+        console.log(event)
+        const selectedFile = event.target.files[0]; // Lấy file được chọn
+        if (selectedFile) {
+            textLabel.textContent = `File Name: ${selectedFile.name}`; // Cập nhật text của label
+        } else {
+            textLabel.textContent = "Choose file"; // Reset text nếu không có file nào được chọn
+        }
+    });
+    
+    uploadButton.addEventListener("click", async (e) => {
+        const file = fileInput.files[0]; // Lấy file từ input
+
+        if (!file) {
+            alert("Please select a file to upload!");
+            return;
+        }
+        const formData = new FormData();
+        formData.append('file', file);
+
+        // Sử dụng fetch API để gửi dữ liệu đến backend
+        try {
+            const response = await fetch("http://127.0.0.1:5000/upload", {
+                method: "POST",
+                body: formData,
+            });
+
+            const result = await response.json();
+            if (response.ok && result.ok) {
+                // Đảm bảo kết nối WebSocket sau khi upload thành công
+                socket.emit('start_prediction', { message: 'Start prediction after upload' });
+            }
+            else {
+                alert(`Error: ${result.message || "File upload failed."}`);
+            }
+        }
+        catch (error) {
+            console.error("Error:", error);
+            alert("An unexpected error occurred.");
+        }
+    });
+    stopButton.addEventListener('click', function() {
+        // Dừng video stream 
+        socket.emit('stop_prediction', {messange: "Stop prediction"})
+    })
+</script>
+</html>
