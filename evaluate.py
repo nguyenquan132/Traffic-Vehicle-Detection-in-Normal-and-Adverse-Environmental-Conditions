@@ -1,52 +1,66 @@
 from torch.utils.data import DataLoader
 import torchvision
 import torch
-from function import evaluate_predictions
 from tqdm.auto import tqdm
-import numpy as np
+from torchmetrics.detection import MeanAveragePrecision
 
 def evaluate(val_dataloader: DataLoader,
-              model: torchvision.models,
-              num_class: int,
-              iou_threshold: float,
-              device: torch.device):
+             model: torchvision.models,
+             num_class: int,
+             iou_threshold: float,
+             device: torch.device):
+    # Di chuyển mô hình đến device (GPU hoặc CPU)
     model = model.to(device)
     model.eval()
 
-    precisions_per_class = {i: [] for i in range(1, num_class + 1)}
-    recalls_per_class = {i: [] for i in range(1, num_class + 1)}
-    ap_per_class = {i: [] for i in range(1, num_class + 1)}
+    # Khởi tạo metric MeanAveragePrecision
+    metric = MeanAveragePrecision(
+        iou_type="bbox",  # Sử dụng bounding box
+        iou_thresholds=[iou_threshold],  # Sử dụng ngưỡng IoU cụ thể (ví dụ: 0.5)
+        box_format="xyxy",  # Định dạng bounding box là [xmin, ymin, xmax, ymax]
+        class_metrics=True  # Tính toán AP cho từng lớp
+    ).to(device)
 
     with torch.inference_mode():
         for batch, (images, targets) in tqdm(enumerate(val_dataloader), total=len(val_dataloader)):
-            image = list(image.to(device) for image in images)
-            target = [{k: v.to(device) for k, v in t.items()} for t in targets]
+            # Di chuyển ảnh và targets đến device
+            images = [image.to(device) for image in images]
+            targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
-            outputs = model(image)
+            # Dự đoán
+            outputs = model(images)
 
-            batch_ap, batch_precision, batch_recall = evaluate_predictions(predictions=outputs,
-                                                                           targets=target,
-                                                                           num_class=num_class,
-                                                                           iou_threshold=iou_threshold)
+            # Chuẩn bị dữ liệu cho torchmetrics
+            preds = [
+                {
+                    "boxes": output["boxes"],  # Bounding boxes
+                    "scores": output["scores"],  # Độ tin cậy
+                    "labels": output["labels"],  # Nhãn lớp
+                }
+                for output in outputs
+            ]
 
-            # Cập nhật AP, precision, recall, confidence cho từng class
-            for class_id in range(1, num_class + 1):
-                ap_per_class[class_id].extend(batch_ap[class_id])
-                
-                if batch_precision[class_id]:
-                    precisions_per_class[class_id].extend(np.concatenate(batch_precision[class_id]))
-                if batch_recall[class_id]:
-                    recalls_per_class[class_id].extend(np.concatenate(batch_recall[class_id]))
+            # Chuẩn bị ground truth cho torchmetrics
+            gt = [
+                {
+                    "boxes": target["boxes"],  # Bounding boxes
+                    "labels": target["labels"],  # Nhãn lớp
+                }
+                for target in targets
+            ]
 
-        # Tính mean AP cho mỗi class
-        AP_per_class = {
-            class_id: np.mean(aps) if len(aps) > 0 else 0
-            for class_id, aps in ap_per_class.items()
-        }
+            # Cập nhật metric
+            metric.update(preds, gt)
 
-        # Tính mAP
-        mAP = np.mean(list(AP_per_class.values()))
-        
+    # Tính toán kết quả
+    result = metric.compute()
+
+    # Trích xuất các giá trị cần thiết
+    mAP = result["map_50"].item()  # mAP tại IoU threshold 0.5
+    AP_per_class = {
+        class_id: result["map_per_class"][class_id - 1].item()
+        for class_id in range(1, num_class + 1)
+    }
 
 
-        return mAP, AP_per_class, precisions_per_class, recalls_per_class
+    return mAP, AP_per_class
