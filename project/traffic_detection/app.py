@@ -2,17 +2,22 @@ import eventlet
 eventlet.monkey_patch()
 from flask import Flask, request, render_template, jsonify
 import os
-from utils.preprocess import check_darkness, enhance_image
-from utils.predict import yolo_predict
-from utils.model_loader import load_yolo
 import json
 from flask_socketio import SocketIO
 from flask_cors import CORS
 import time, base64
+from threading import Event
+from ultralytics import YOLO
 
 import sys
 import cv2
 import supervision as sv
+
+def load_yolo():
+    """
+    Load YOLO model.
+    """
+    return YOLO("weights/yolov9s_18_11.pt")
 
 # Thêm thư mục gốc vào sys.path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -23,6 +28,13 @@ CORS(app)
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['RESULT_FOLDER'] = 'static/results'
 socketio = SocketIO(app)
+
+class PredictionState:
+    def __init__(self):
+        self.is_predicting = Event()
+        self.is_predicting.set()  # Bắt đầu ở trạng thái hoạt động
+
+prediction_state = PredictionState()
 
 label_mapping = {
     0: "motorbike",
@@ -44,20 +56,31 @@ def home():
 
 # Hàm để dừng predict
 def stop_prediction():
-    global is_predicting
-    is_predicting = False
+    prediction_state.is_predicting.clear()
+
+def resume_prediction():
+    prediction_state.is_predicting.set()
 
 def predict_video_stream(filepath):
-    global box_size
+    global box_size, old_frame
     cap = cv2.VideoCapture(filepath)
     fps = cap.get(cv2.CAP_PROP_FPS)
+    vehicle_counters = {
+        "motorbike": set(),
+        "car": set(),
+        "coach": set(),
+        "container": set()
+    }
     delay = 1 / fps
     box_annotator = sv.BoxAnnotator(thickness=2)
     label_annotator = sv.LabelAnnotator(text_scale=1, text_thickness=2, text_position=sv.Position.TOP_CENTER)
     trace_annotator = sv.TraceAnnotator(position=sv.Position.BOTTOM_CENTER, color_lookup=sv.ColorLookup.TRACK)
     tracker = sv.ByteTrack(frame_rate=fps)
 
-    while cap.isOpened() and is_predicting:
+    while cap.isOpened():
+        # Kiểm tra trạng thái
+        prediction_state.is_predicting.wait() # Đợi đến khi trạng thái là "resume"
+
         success, image = cap.read()
         detection_data = []
 
@@ -66,7 +89,19 @@ def predict_video_stream(filepath):
         results = model.predict(image, save=False)[0]
         detections = sv.Detections.from_ultralytics(results)
         detections = tracker.update_with_detections(detections)
-        
+
+        # Đếm số xe
+        for class_id, tracker_id in zip(detections.class_id, detections.tracker_id):
+            vehicle_type = label_mapping[int(class_id)]
+            if tracker_id not in vehicle_counters[vehicle_type]:
+                vehicle_counters[vehicle_type].add(int(tracker_id))
+
+        # Tạo counter dictionary với số lượng của mỗi loại xe
+        counter = {
+            vehicle_type: len(track_ids) 
+            for vehicle_type, track_ids in vehicle_counters.items()
+        }
+
         box_size = len(detections.xyxy)
         for i in range(len(detections.xyxy)):
             detection_data.append({
@@ -91,9 +126,12 @@ def predict_video_stream(filepath):
         _, buffer = cv2.imencode('.jpg', annotated_frame)
         frame = base64.b64encode(buffer).decode('utf-8')
 
+        # Lưu frame trước khi dừng 
+        old_frame = frame 
         # Emit frame and detection_data
-        socketio.emit('video_stream', {'frame': frame, 'detection_data': json.dumps(detection_data, ensure_ascii=False)})
-    
+        socketio.emit('video_stream', {'frame': frame, 'detection_data': json.dumps(detection_data, ensure_ascii=False),
+                                       'counter': json.dumps(counter, ensure_ascii=False)})
+
         time.sleep(delay)
     
     cap.release()
@@ -121,35 +159,31 @@ def upload_file():
 @socketio.on('start_prediction')
 def handle_start_prediction(data):
     print(data)
-    global is_predicting
-    is_predicting = True
+    resume_prediction() # Đảm bảo trạng thái được kích hoạt
     if filename:
         predict_video_stream(filename)
 
 @socketio.on('stop_prediction')
 def handle_stop_prediction(data):
     print(data)
-    stop_prediction()
+    stop_prediction() # Chuyển trạng thái dừng
+
+@socketio.on('resume_prediction')
+def handle_resume_prediction(data):
+    print(data)
+    resume_prediction() # Chuyển trạng thái tiếp tục
+
+@socketio.on('capture_prediction')
+def handle_capture_prediction(data):
+    print(data)
+    if prediction_state.is_predicting.is_set():
+        return socketio.emit('capture_frame', {"ok": False, "message": "Vui lòng nhấn Stop trước khi Capture"})
+    
+    return socketio.emit('capture_frame', {"ok": True, 'frame': old_frame})
 
 @socketio.on('connect')
 def handle_connect():
     print('Client connected to WebSocket')
     
-    # # Kiểm tra độ sáng
-    # is_dark, mean_brightness = check_darkness(filepath)
-    # if is_dark:
-    #     enhanced_path = os.path.join(app.config['UPLOAD_FOLDER'], f"enhanced_{file.filename}")
-    #     enhance_image(filepath, enhanced_path)
-    #     filepath = enhanced_path
-
-    # # Dự đoán
-    # result_path, detection_data, message = yolo_predict(filepath, app.config['RESULT_FOLDER'], label_mapping)
-
-    # return render_template('index.html',
-    #                        original_image=file.filename,
-    #                        detected_image=os.path.basename(result_path) if result_path else None,
-    #                        detection_data=detection_data,
-    #                        message=message)
-
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
