@@ -8,6 +8,10 @@
         * {
             box-sizing: border-box
         }
+        body, html { 
+            height: 100%; 
+            margin: 0; 
+        }
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
@@ -18,21 +22,41 @@
             margin-bottom: 5px;
         }
         .container {
-            border: 1px solid #000;
-            max-width: 55%;
-            min-height: 60vh;
-            margin: 20px auto;
-            padding: 5px;
-            border-radius: 5px;
-            display: flex;
+            border: none;
+            display: grid;
             align-items: center;
             justify-content: center;
+            grid-template-columns: 3fr 1.2fr;
+            width: 64%;
+            min-height: 55vh;
+            margin: 20px auto;
+            gap: 2px;
+        }
+        .video {
+            border: none;
+            min-width: 100%;
+            min-height: 100%;
+            border-radius: 5px;
             overflow: hidden;
         }
+        .vehicle {
+            border: none;
+            max-width: 100%;
+            height: 100%;
+            border-radius: 5px;
+        }
         table {
-            width: 100%;
+            min-width: 100%;
+            min-height: 100%;
             border-collapse: collapse;
+        }
+        .information table {
             margin-top: 20px;
+        }
+        .vehicle table {
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 5px;
         }
         table, th, td {
             border: 1px solid #ddd;
@@ -44,18 +68,18 @@
         th {
             background-color: #f4f4f4;
         }
-        .message {
+        /* .message {
             color: red;
             margin-top: 20px;
             font-size: 16px;
-        }
+        } */
         .predict {
             font-size: 20px;
             border: 1px solid #000;
             display: grid;
-            grid-template-columns: 3fr 1fr 1fr;
+            grid-template-columns: 3fr 1fr 1fr 1fr 1fr;
             gap: 5px;
-            width: 40%;
+            width: 50%;
             margin: 0 auto;
             border-radius: 5px;
         }
@@ -71,7 +95,13 @@
             background-color: yellow;
         }
         .predict button.stop:hover {
-            background-color: red;
+            background-color: rgb(243, 18, 18);
+        }
+        .predict button.resume:hover {
+            background-color: rgb(11, 254, 11);
+        }
+        .predict button.capture:hover {
+            background-color: darkorange;
         }
         .predict input {
             font-size: inherit;
@@ -85,6 +115,13 @@
             align-items: center;
             cursor: pointer;
         }
+        footer {
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            bottom: 5px;
+            margin-top: 10px;
+        }
     </style>
     <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
 </head>
@@ -95,21 +132,31 @@
         <input type="file" id="fileInput" accept="image/*,video/*">
         <button type="button" id="uploadButton" class="upload">Upload</button>
         <button type="button" id="stopButton" class="stop">Stop</button>
+        <button type="button" id="resumeButton" class="resume">Resume</button>
+        <button type="button" id="captureButton" class="capture">Capture</button>
     </div>
     <div class="container">
         <div id="video" class="video"></div>
+        <div id="vehicle" class="vehicle"></div>
     </div>
     <div id="information" class="information"></div>
+
+    <footer>
+        <strong>Lưu ý: Capture hình ảnh chỉ được bật khi nhấn Stop. Sau khi Capture thì hình ảnh sẽ được lưu về máy</strong>
+    </footer>
     
 </body>
 <script>
     const fileInput = document.getElementById("fileInput");
     const uploadButton = document.getElementById("uploadButton")
     const video = document.getElementById("video");
+    const Nvehicle = document.getElementById("vehicle");
     const information_vehicle = document.getElementById("information");
     const stopButton = document.getElementById("stopButton");
+    const captureButton = document.getElementById("captureButton");
+    const resumeButton = document.getElementById("resumeButton");
     const textLabel = document.getElementById("textLabel");
-    const socket = io("http://127.0.0.1:5000");
+    const socket = io(`${window.location.origin}`);
 
     socket.on('connect', () => {
         console.log('Connected to WebSocket');
@@ -119,16 +166,53 @@
         console.log('Received frame');
         let frameBase64 = data.frame;
         let vehicleInfo = data.detection_data;
+        let vehicleCount = data.counter;
         video.innerHTML = `<img src="data:image/jpeg;base64,${frameBase64}" alt="Video Stream" 
         style="max-width: 100%; max-height: 100%; object-fit: contain;">`;
 
         try {
             vehicleInfo = JSON.parse(vehicleInfo);  // Chuyển chuỗi thành đối tượng
+            vehicleCount = JSON.parse(vehicleCount);
         } catch (error) {
-            console.error("Failed to parse vehicleInfo as JSON", error);
+            console.error("Failed to parse as JSON", error);
             return;
         }
-        console.log(vehicleInfo.length)
+        // Bảng hiển thị số xe
+        let tabelVehicle = '';
+        tabelVehicle += `
+            <tr>
+                <tr>
+                    <td>Xe máy</td>
+                    <td>${vehicleCount.motorbike}</td>
+                </tr>
+                <tr>
+                    <td>Xe ô tô</td>
+                    <td>${vehicleCount.car}</td>
+                </tr>
+                <tr>
+                    <td>Xe khách</td>
+                    <td>${vehicleCount.coach}</td>
+                </tr>
+                <tr>
+                    <td>Xe chở hàng container</td>
+                    <td>${vehicleCount.container}</td>
+                </tr>
+            </tr>
+        `;
+        Nvehicle.innerHTML = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>Vehicle</th>
+                        <th style="width: 60px;">SL</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tabelVehicle}
+                </tbody>
+            </table>
+        `;
+
         let tableContent = '';
         for (let i = 0; i < vehicleInfo.length; i++) {
             tableContent += `<tr>
@@ -182,7 +266,7 @@
 
         // Sử dụng fetch API để gửi dữ liệu đến backend
         try {
-            const response = await fetch("http://127.0.0.1:5000/upload", {
+            const response = await fetch(`${window.location.origin}/upload`, {
                 method: "POST",
                 body: formData,
             });
@@ -203,7 +287,32 @@
     });
     stopButton.addEventListener('click', function() {
         // Dừng video stream 
-        socket.emit('stop_prediction', {messange: "Stop prediction"})
+        socket.emit('stop_prediction', {message: "Stop prediction"})
+    })
+    resumeButton.addEventListener('click', function() {
+        // Tiếp tục video stream
+        socket.emit('resume_prediction', {message: "Resume prediction"})
+    })
+    captureButton.addEventListener('click', function(){
+        socket.emit('capture_prediction', {message: "Capture prediction"})
+    })
+    socket.on('capture_frame', (data) => {
+        if (data.ok) {
+            const oldFrame = data.frame;
+            // Tạo một thẻ link tạm thời
+            const link = document.createElement('a');
+            link.href = `data:image/jpeg;base64,${oldFrame}`;
+            link.download = `captured_frame_${new Date().toISOString().replace(/[:.]/g, '-')}.jpg`; // Đặt tên file theo thời gian
+
+            // Giả lập việc nhấn vào link
+            document.body.appendChild(link); // Thêm vào DOM (không hiển thị)
+            link.click(); // Kích hoạt hành động tải file
+            document.body.removeChild(link); // Xóa link khỏi DOM sau khi tải xong
+        }
+        else {
+            alert(data.message)
+        }
+        
     })
 </script>
 </html>
