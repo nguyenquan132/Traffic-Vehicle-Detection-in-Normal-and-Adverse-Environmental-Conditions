@@ -17,7 +17,7 @@ def train_step(train_dataloader: DataLoader,
     loss_classifier, loss_box_reg, loss_objectness, loss_rpn_box_reg = 0, 0, 0, 0
 
     for batch, (images, targets) in tqdm(enumerate(train_dataloader), total=len(train_dataloader)):
-        image = list(image.to(device) for image in images)
+        images = [image.to(device) for image in images]
         if model_dce is not None:
             enhanced_images = []
             for image in images:
