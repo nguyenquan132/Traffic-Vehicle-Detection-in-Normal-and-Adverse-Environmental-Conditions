@@ -13,7 +13,9 @@ def evaluate(val_dataloader: DataLoader,
     # Di chuyển mô hình đến device (GPU hoặc CPU)
     model = model.to(device)
     model.eval()
-    if model_dce is not None: model_dce.eval()
+    if model_dce is not None: 
+        model_dce = model_dce.to(device)
+        model_dce.eval()
 
     # Khởi tạo metric MeanAveragePrecision
     metric = MeanAveragePrecision(
