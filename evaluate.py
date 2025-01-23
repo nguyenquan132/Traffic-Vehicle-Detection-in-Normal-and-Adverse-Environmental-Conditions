@@ -8,10 +8,12 @@ def evaluate(val_dataloader: DataLoader,
              model: torchvision.models,
              num_class: int,
              iou_threshold: float,
-             device: torch.device):
+             device: torch.device,
+             model_dce=None):
     # Di chuyển mô hình đến device (GPU hoặc CPU)
     model = model.to(device)
     model.eval()
+    if model_dce is not None: model_dce.eval()
 
     # Khởi tạo metric MeanAveragePrecision
     metric = MeanAveragePrecision(
@@ -25,10 +27,16 @@ def evaluate(val_dataloader: DataLoader,
         for batch, (images, targets) in tqdm(enumerate(val_dataloader), total=len(val_dataloader)):
             # Di chuyển ảnh và targets đến device
             images = [image.to(device) for image in images]
+            if model_dce is not None:
+                enhanced_images = []
+                for image in images:
+                    _, enhance_image, _ = model_dce(image.unsqueeze(0))
+                    enhanced_images.append(enhance_image.squeeze())
             targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
+            if model_dce is not None: outputs = model(enhanced_images)
             # Dự đoán
-            outputs = model(images)
+            else: outputs = model(images)
 
             # Chuẩn bị dữ liệu cho torchmetrics
             preds = [
