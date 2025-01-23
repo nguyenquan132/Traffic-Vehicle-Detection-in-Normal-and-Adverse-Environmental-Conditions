@@ -10,7 +10,9 @@ def train_step(train_dataloader: DataLoader,
                model_dce=None):
     model = model.to(device)
     model.train()
-    if model_dce is not None: model_dce.eval()
+    if model_dce is not None: 
+        model_dce = model_dce.to(device)
+        model_dce.eval()
     loss = 0
     loss_classifier, loss_box_reg, loss_objectness, loss_rpn_box_reg = 0, 0, 0, 0
 
@@ -25,7 +27,7 @@ def train_step(train_dataloader: DataLoader,
 
         if model_dce is not None: loss_dict = model(enhanced_images, target)
         else: loss_dict = model(image, target)
-        
+
         if batch == 1:
             print(f"batch 1: \n{loss_dict}")
 
