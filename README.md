@@ -67,9 +67,9 @@ cầu thời gian thực. Để giải quyết những hạn chế này, trong b
 #### Faster RCNN Models
 | Model                     | Backbone     | F1 Score  | mAP@50   | mAP@50-95 |
 |:--------------------------|:------------:|:--------:|:--------:|:---------:|
-| Faster RCNN               | ResNet50     | 0.6483   |  0.6283 |   0.5585  |
-| Faster RCNN + enhanced data| ResNet50     | 0.6818   |  0.7244 |   0.5625  |
-| Faster RCNN               | MobileNet V3 | 0.6922   |  0.7422 |   0.5883  |
+| Faster RCNN               | ResNet50     | 0.6483   |  0.7422 |   0.5585  |
+| Faster RCNN + enhanced data| ResNet50     | 0.7023   |  0.7523 |   0.5625  |
+| Faster RCNN               | MobileNet V3 | 0.6922   |  0.7612 |   0.5883  |
 | Faster RCNN + enhanced data| MobileNet V3 | 0.7739   |  0.8219 |   0.6213  |
 
 #### SSD Models
