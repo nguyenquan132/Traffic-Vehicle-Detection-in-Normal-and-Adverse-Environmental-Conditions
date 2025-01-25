@@ -55,23 +55,29 @@ cầu thời gian thực. Để giải quyết những hạn chế này, trong b
 ```
 
 ### **6. Kết quả**
-     Model                | F1 Score |   mAP@50  | mAP@50-95 |   
-|:-----------------------:|:--------:| ---------:|-----------:
-|     Yolov8s             | 0.901486 |   0.942   |    0.711  | 
-|    Yolov11s             |  0.9015  |   0.943   |    0.712  |
-| Yolov8s + enhanced data | 0.903478 |   0.943   |    0.737  | 
-|Yolov11s + enhanced data |  0.9055  |   0.946   |     0.74  |     
+### **6. Kết quả**
 
-     Model                     | Backbone     |  F1 Score | mAP@50   | mAP@50-95 |   
-|:----------------------------:|:------------:| ---------:|---------:|-----------:
-|     Faster RCNN              | ResNet50     |  0.6483   |  0.6283  |   0.5585  | 
-| Faster RCNN + enhanced data  | ResNet50     |  0.6818   |  0.7244  |   0.5625  |
-|     Faster RCNN              | MobileNet V3 |  0.6922   |  0.7422  |   0.5883  | 
-| Faster RCNN + enhanced data  | MobileNet V3 |  0.7739   |  0.8219  |   0.6213  |
+#### YOLO Models
+| Model                   | F1 Score  | mAP@50  | mAP@50-95 |
+|:------------------------|:---------:|:-------:|:---------:|
+| Yolov8s                 | 0.901486 |  0.942  |   0.711   |
+| Yolov11s                | 0.9015   |  0.943  |   0.712   |
+| Yolov8s + enhanced data | 0.903478 |  0.943  |   0.737   |
+| Yolov11s + enhanced data| 0.9055   |  0.946  |   0.740   |
 
-     Model                      | F1 Score | mAP@50 | mAP@50-95  |   
-|:-----------------------------:|:--------:| ---------:|---------:
-|     SSD (300x300)             |  0.6364  |  0.724481 | 0.43526 | 
-| SSD (300x300) + enhanced data |  0.7248  |   0.7248  | 0.43529 |
-|     SSD (512x512)             |  0.6401  |  0.725481 | 0.43616 | 
-| SSD (512x512) + enhanced data |  0.6407  |  0.725502 | 0.4362  |
+#### Faster RCNN Models
+| Model                     | Backbone     | F1 Score  | mAP@50   | mAP@50-95 |
+|:--------------------------|:------------:|:--------:|:--------:|:---------:|
+| Faster RCNN               | ResNet50     | 0.6483   |  0.6283 |   0.5585  |
+| Faster RCNN + enhanced data| ResNet50     | 0.6818   |  0.7244 |   0.5625  |
+| Faster RCNN               | MobileNet V3 | 0.6922   |  0.7422 |   0.5883  |
+| Faster RCNN + enhanced data| MobileNet V3 | 0.7739   |  0.8219 |   0.6213  |
+
+#### SSD Models
+| Model                      | F1 Score | mAP@50    | mAP@50-95  |
+|:---------------------------|:--------:|:---------:|:----------:|
+| SSD (300x300)              | 0.6364   | 0.724481  |  0.43526   |
+| SSD (300x300) + enhanced data| 0.7248 | 0.7248    |  0.43529   |
+| SSD (512x512)              | 0.6401   | 0.725481  |  0.43616   |
+| SSD (512x512) + enhanced data| 0.6407 | 0.725502  |  0.4362    |
+
