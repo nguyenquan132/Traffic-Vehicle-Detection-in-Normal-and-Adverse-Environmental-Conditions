@@ -39,6 +39,7 @@ cầu thời gian thực. Để giải quyết những hạn chế này, trong b
 - **Container hóa**: Docker
 ### **3. Pipeline thực hiện**
 <img src="images/pipeline.png" align="center">
+
 ### **4. Cài đặt và chạy ứng dụng**
 * **Clone repository**: ```https://github.com/nguyenquan132/Traffic-Vehicle-Detection-in-Normal-and-Adverse-Environmental-Conditions.git```
 * **Pull Docker image từ Docker Hub**: ```docker pull hightfight/computer_vision:latest```
@@ -51,6 +52,7 @@ cầu thời gian thực. Để giải quyết những hạn chế này, trong b
         ├── Dockerfile
         └── templates/
             └── traffic.html/
+```
 
 ### **6. Kết quả**
      Model                | F1 Score | mAP@50 | mAP@50-95 |   
