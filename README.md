@@ -55,7 +55,6 @@ cầu thời gian thực. Để giải quyết những hạn chế này, trong b
 ```
 
 ### **6. Kết quả**
-### **6. Kết quả**
 
 #### YOLO Models
 | Model                   | F1 Score  | mAP@50  | mAP@50-95 |
